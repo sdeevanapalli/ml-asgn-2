@@ -65,7 +65,7 @@ print(f"D1 full: {d1.shape},  D2 full: {d2.shape}")
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. CLASS DISTRIBUTION
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[1] Class Distribution")
+print("\n[1] class distribution")
 
 for ds_name, ds in [("D1", d1), ("D2", d2)]:
     vc = ds["label"].value_counts().sort_index()
@@ -93,7 +93,7 @@ savefig("eda_class_distribution.png")
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. DEMOGRAPHIC ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[2] Demographic Analysis")
+print("\n[2] demographic analysis")
 
 # 2a. Age distribution — histogram + KDE by label
 for ds_name, ds, tag in [("D1 (Historical)", d1, "d1"),
@@ -168,7 +168,7 @@ for ds_name, ds, tag in [("D1 (Historical)", d1, "d1"),
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. CLINICAL FEATURE ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[3] Clinical Feature Analysis")
+print("\n[3] clinical feature analysis")
 
 CLINICAL_FEATURES = {
     "Body Height":           "obs_Body_Height_mean",
@@ -200,7 +200,7 @@ for label, col in CLINICAL_FEATURES.items():
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. ENCOUNTER & UTILIZATION ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[4] Encounter & Utilization Analysis")
+print("\n[4] encounter & utilization analysis")
 
 UTIL_FEATURES = [
     ("total_encounters",  "Total Encounters"),
@@ -229,7 +229,7 @@ for col, title in UTIL_FEATURES:
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. CORRELATION HEATMAP (D1 train, top 30 features correlated with label)
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[5] Correlation Heatmap")
+print("\n[5] correlation heatmap")
 
 corr_df = X_train_d1.copy()
 corr_df["label"] = y_train_d1
@@ -270,7 +270,7 @@ for feat, val in label_corr.head(10).items():
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. DATASET DRIFT ANALYSIS (D1 train vs D2 train)
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[6] Dataset Drift Analysis")
+print("\n[6] dataset drift analysis")
 
 # Identify top 10 numeric features by absolute correlation with label in D1
 numeric_features = [c for c in feature_names if c != "label"]
@@ -322,7 +322,7 @@ savefig("eda_drift_kde_top10.png")
 # ─────────────────────────────────────────────────────────────────────────────
 # 7. MISSING VALUE ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[7] Missing Value Analysis")
+print("\n[7] missing value analysis")
 
 # The 132 dropped columns — reconstruct from the full pre-drop matrix
 # We know from pipeline: obs vars with >50% missing + 3 allergy cols
@@ -359,7 +359,6 @@ for bar, val in zip(bars, top20_miss.values):
 plt.tight_layout()
 savefig("eda_missing_values_top20.png")
 
-# Also show the 3 allergy columns that were dropped
 print(f"  Observation types with >50% missing: "
       f"{(obs_miss_pct > 50).sum()} of {len(obs_miss_pct)}")
 print(f"  Allergy features also dropped: total_allergies, "
@@ -368,7 +367,7 @@ print(f"  Allergy features also dropped: total_allergies, "
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. SUMMARY STATISTICS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[8] Summary Statistics")
+print("\n[8] summary statistics")
 
 stats_d1 = d1.describe().T
 stats_d1.to_csv(os.path.join(EDA_DIR, "summary_stats_d1.csv"))
@@ -383,7 +382,7 @@ print("  saved: summary_stats_d2.csv")
 # ─────────────────────────────────────────────────────────────────────────────
 # BONUS: Label-stratified feature means table for clinical features
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[Bonus] Label-stratified clinical means (D1)")
+print("\n[bonus] label-stratified clinical means (D1)")
 clinical_cols = list(CLINICAL_FEATURES.values()) + [
     "total_encounters", "total_medications", "total_procedures",
     "total_claims", "age", "INCOME"
@@ -403,7 +402,7 @@ print("  saved: eda_clinical_stratified_means_d1.csv")
 # FINAL FILE LIST
 # ─────────────────────────────────────────────────────────────────────────────
 print("\n" + "="*60)
-print("ALL SAVED FILES:")
+print("all saved files:")
 print("="*60)
 for path in sorted(SAVED):
     size = os.path.getsize(path) / 1024

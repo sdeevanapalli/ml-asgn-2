@@ -25,92 +25,77 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 1 — LOAD AND CLEAN ALL 17 TABLES
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 1 — Loading and cleaning all 17 tables")
-print("="*70)
+print("\nstep 1 — loading and cleaning all 17 tables")
 
-# --- patients ---
 patients = pd.read_csv("data/patients.csv", on_bad_lines="skip")
 for col in ["BIRTHDATE", "DEATHDATE"]:
     patients[col] = pd.to_datetime(patients[col], errors="coerce")
-print(f"  patients          : {patients.shape}")
+print(f"  patients: {patients.shape}")
 
-# --- encounters ---
 encounters = pd.read_csv("data/encounters.csv", on_bad_lines="skip")
 for col in ["START", "STOP"]:
     encounters[col] = pd.to_datetime(encounters[col], errors="coerce", utc=True).dt.tz_localize(None)
-print(f"  encounters        : {encounters.shape}")
+print(f"  encounters: {encounters.shape}")
 
-# --- conditions --- (DD-MM-YYYY date format, has 4 unnamed garbage columns)
+# conditions has DD-MM-YYYY dates and unnamed garbage columns
 conditions = pd.read_csv("data/conditions.csv", on_bad_lines="skip")
 conditions.drop(columns=[c for c in conditions.columns if c.startswith("Unnamed")], inplace=True)
 for col in ["START", "STOP"]:
     conditions[col] = pd.to_datetime(conditions[col], dayfirst=True, errors="coerce")
-print(f"  conditions        : {conditions.shape}")
+print(f"  conditions: {conditions.shape}")
 
-# --- observations ---
 observations = pd.read_csv("data/observations.csv", on_bad_lines="skip")
 observations["DATE"] = pd.to_datetime(observations["DATE"], errors="coerce")
 observations["VALUE_NUMERIC"] = pd.to_numeric(observations["VALUE"], errors="coerce")
-print(f"  observations      : {observations.shape}")
+print(f"  observations: {observations.shape}")
 
-# --- medications ---
 medications = pd.read_csv("data/medications.csv", on_bad_lines="skip")
 for col in ["START", "STOP"]:
     medications[col] = pd.to_datetime(medications[col], errors="coerce")
-print(f"  medications       : {medications.shape}")
+print(f"  medications: {medications.shape}")
 
-# --- procedures ---
 procedures = pd.read_csv("data/procedures.csv", on_bad_lines="skip")
 for col in ["START", "STOP"]:
     procedures[col] = pd.to_datetime(procedures[col], errors="coerce")
-print(f"  procedures        : {procedures.shape}")
+print(f"  procedures: {procedures.shape}")
 
-# --- immunizations ---
 immunizations = pd.read_csv("data/immunizations.csv", on_bad_lines="skip")
 immunizations["DATE"] = pd.to_datetime(immunizations["DATE"], errors="coerce")
-print(f"  immunizations     : {immunizations.shape}")
+print(f"  immunizations: {immunizations.shape}")
 
-# --- allergies ---
 allergies = pd.read_csv("data/allergies.csv", on_bad_lines="skip")
 allergies["START"] = pd.to_datetime(allergies["START"], errors="coerce")
-print(f"  allergies         : {allergies.shape}")
+print(f"  allergies: {allergies.shape}")
 
-# --- careplans ---
 careplans = pd.read_csv("data/careplans.csv", on_bad_lines="skip")
 for col in ["START", "STOP"]:
     careplans[col] = pd.to_datetime(careplans[col], errors="coerce")
-print(f"  careplans         : {careplans.shape}")
+print(f"  careplans: {careplans.shape}")
 
-# --- imaging_studies ---
 imaging_studies = pd.read_csv("data/imaging_studies.csv", on_bad_lines="skip")
 imaging_studies["DATE"] = pd.to_datetime(imaging_studies["DATE"], errors="coerce")
-print(f"  imaging_studies   : {imaging_studies.shape}")
+print(f"  imaging_studies: {imaging_studies.shape}")
 
-# --- devices ---
 devices = pd.read_csv("data/devices.csv", on_bad_lines="skip")
 for col in ["START", "STOP"]:
     devices[col] = pd.to_datetime(devices[col], errors="coerce")
-print(f"  devices           : {devices.shape}")
+print(f"  devices: {devices.shape}")
 
-# --- supplies ---
 supplies = pd.read_csv("data/supplies.csv", on_bad_lines="skip")
 supplies["DATE"] = pd.to_datetime(supplies["DATE"], errors="coerce")
-print(f"  supplies          : {supplies.shape}")
+print(f"  supplies: {supplies.shape}")
 
-# --- payer_transitions ---
 payer_transitions = pd.read_csv("data/payer_transitions.csv", on_bad_lines="skip")
 for col in ["START_DATE", "END_DATE"]:
     payer_transitions[col] = pd.to_datetime(payer_transitions[col], errors="coerce")
-print(f"  payer_transitions : {payer_transitions.shape}")
+print(f"  payer_transitions: {payer_transitions.shape}")
 
-# --- claims ---
 claims = pd.read_csv("data/claims.csv", on_bad_lines="skip")
 for col in ["SERVICEDATE", "CURRENTILLNESSDATE"]:
     claims[col] = pd.to_datetime(claims[col], errors="coerce")
-print(f"  claims            : {claims.shape}")
+print(f"  claims: {claims.shape}")
 
-# --- claims_transactions (1.97M rows — keep only patient-level relevant cols) ---
+# claims_transactions is large — only load patient-relevant cols
 CT_KEEP = ["ID", "CLAIMID", "PATIENTID", "TYPE", "AMOUNT",
            "FROMDATE", "TODATE", "PAYMENTS", "ADJUSTMENTS",
            "TRANSFERS", "OUTSTANDING"]
@@ -121,22 +106,19 @@ claims_transactions = pd.read_csv(
 )
 for col in ["FROMDATE", "TODATE"]:
     claims_transactions[col] = pd.to_datetime(claims_transactions[col], errors="coerce")
-print(f"  claims_trans      : {claims_transactions.shape}  (trimmed cols)")
+print(f"  claims_trans: {claims_transactions.shape}  (trimmed cols)")
 
-# --- organizations / providers — reference only, loaded but not used in features ---
+# orgs/providers are reference only — not used in features
 organizations = pd.read_csv("data/organizations.csv", on_bad_lines="skip")
 providers = pd.read_csv("data/providers.csv", on_bad_lines="skip")
-print(f"  organizations     : {organizations.shape}  (reference — skipped in features)")
-print(f"  providers         : {providers.shape}  (reference — skipped in features)")
-print("\nStep 1 complete.")
+print(f"  organizations: {organizations.shape}")
+print(f"  providers: {providers.shape}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 2 — BUILD UNIFIED PATIENT-LEVEL FEATURE MATRIX
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 2 — Building patient-level feature matrix")
-print("="*70)
+print("\nstep 2 — building patient-level feature matrix")
 
 all_patient_ids = patients["Id"].unique()
 feat = pd.DataFrame({"PATIENT": all_patient_ids})
@@ -180,7 +162,6 @@ obs_numeric = obs_numeric[obs_numeric["DESCRIPTION"].isin(common_obs)]
 print(f"  Observation types ≥5% coverage: {len(common_obs)} of "
       f"{obs_desc_counts.shape[0]} total")
 
-# Compute mean and variance per patient per description
 obs_mean = (
     obs_numeric.groupby(["PATIENT", "DESCRIPTION"])["VALUE_NUMERIC"]
     .mean()
@@ -296,16 +277,13 @@ ct_agg = claims_transactions.groupby("PATIENTID").agg(
 feat = feat.merge(ct_agg, on="PATIENT", how="left")
 print(f"  After claims_trans      : {feat.shape}")
 
-print(f"\nFull feature matrix shape (before label/split): {feat.shape}")
-print("Step 2 complete.")
+print(f"\nfeature matrix shape: {feat.shape}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 3 — ASSIGN BINARY LABELS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 3 — Assigning binary labels")
-print("="*70)
+print("\nstep 3 — assigning binary labels")
 
 labelled = conditions[
     conditions["DESCRIPTION"].str.contains(r"\(disorder\)|\(finding\)", na=False)
@@ -316,17 +294,13 @@ print(f"  Patients with label=1 : {feat['label'].sum()} "
       f"({feat['label'].mean()*100:.1f}%)")
 print(f"  Patients with label=0 : {(feat['label']==0).sum()} "
       f"({(feat['label']==0).mean()*100:.1f}%)")
-print("Step 3 complete.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 4 — TEMPORAL SPLIT
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 4 — Temporal split")
-print("="*70)
+print("\nstep 4 — temporal split")
 
-# Per-patient earliest and latest encounter dates
 enc_dates = encounters.groupby("PATIENT")["START"].agg(
     earliest_enc="min", latest_enc="max"
 ).reset_index()
@@ -338,10 +312,9 @@ d1_mask = feat["earliest_enc"] < TEMPORAL_CUTOFF
 # Dataset 2 — Current: at least one encounter on or after 2020-01-01
 d2_mask = feat["latest_enc"] >= TEMPORAL_CUTOFF
 
-print(f"  Dataset 1 (Historical, earliest enc < 2020-01-01) : {d1_mask.sum()} patients")
-print(f"  Dataset 2 (Current,    latest enc  >= 2020-01-01) : {d2_mask.sum()} patients")
-print(f"  In both datasets                                   : "
-      f"{(d1_mask & d2_mask).sum()} patients")
+print(f"  D1 (historical, earliest enc < 2020): {d1_mask.sum()} patients")
+print(f"  D2 (current, latest enc >= 2020): {d2_mask.sum()} patients")
+print(f"  overlap: {(d1_mask & d2_mask).sum()} patients")
 
 d1 = feat[d1_mask].copy()
 d2 = feat[d2_mask].copy()
@@ -349,15 +322,12 @@ d2 = feat[d2_mask].copy()
 # Drop the helper date columns — not model features
 d1 = d1.drop(columns=["earliest_enc", "latest_enc"])
 d2 = d2.drop(columns=["earliest_enc", "latest_enc"])
-print("Step 4 complete.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 5 — PREPROCESS EACH DATASET (drop sparse cols, impute, scale, split)
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 5 — Preprocessing, imputation, scaling, train/test split")
-print("="*70)
+print("\nstep 5 — preprocessing, imputation, scaling, train/test split")
 
 FEATURE_COLS_CACHE = None  # will be set on first dataset
 
@@ -379,11 +349,10 @@ def preprocess(df, dataset_name):
     else:
         print("    (none)")
 
-    # Cache feature names from first dataset; align second to match
+    # cache feature names from first dataset; align second to match
     if FEATURE_COLS_CACHE is None:
         FEATURE_COLS_CACHE = X.columns.tolist()
     else:
-        # Add missing columns (fill with 0), drop extra columns
         for c in FEATURE_COLS_CACHE:
             if c not in X.columns:
                 X[c] = 0.0
@@ -422,23 +391,19 @@ def preprocess(df, dataset_name):
 X_train_d1, X_test_d1, y_train_d1, y_test_d1, scaler_d1, dropped_d1 = preprocess(d1, "D1")
 X_train_d2, X_test_d2, y_train_d2, y_test_d2, scaler_d2, dropped_d2 = preprocess(d2, "D2")
 
-print("\nStep 5 complete.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 6 — SAVE ALL OUTPUTS
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 6 — Saving outputs to data/processed/")
-print("="*70)
+print("\nstep 6 — saving outputs to data/processed/")
 
 def save_pkl(obj, name):
     path = os.path.join(OUTPUT_DIR, name)
     with open(path, "wb") as f:
         pickle.dump(obj, f)
-    print(f"  Saved {name}")
+    print(f"  saved {name}")
 
-# Pickle files
 save_pkl(X_train_d1, "X_train_d1.pkl")
 save_pkl(X_test_d1,  "X_test_d1.pkl")
 save_pkl(y_train_d1, "y_train_d1.pkl")
@@ -453,24 +418,19 @@ save_pkl(scaler_d1, "scaler_d1.pkl")
 save_pkl(scaler_d2, "scaler_d2.pkl")
 save_pkl(FEATURE_COLS_CACHE, "feature_names.pkl")
 
-# CSV files
 for df, name in [
     (X_train_d1, "X_train_d1.csv"), (X_test_d1, "X_test_d1.csv"),
     (X_train_d2, "X_train_d2.csv"), (X_test_d2, "X_test_d2.csv"),
 ]:
     path = os.path.join(OUTPUT_DIR, name)
     df.to_csv(path, index=False)
-    print(f"  Saved {name}")
-
-print("\nStep 6 complete.")
+    print(f"  saved {name}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 7 — SUMMARY REPORT
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n" + "="*70)
-print("STEP 7 — FULL PIPELINE SUMMARY REPORT")
-print("="*70)
+print("\nstep 7 — pipeline summary")
 
 datasets = {
     "D1 train": (X_train_d1, y_train_d1),
@@ -489,16 +449,16 @@ for name, (X, y) in datasets.items():
     mem = X.memory_usage(deep=True).sum() / 1e6
     print(f"  {name:<10} {str(X.shape):<25} {n0:>10} {n1:>10} {pct:>7.1f}% {mem:>10.2f}")
 
-print(f"\nNumber of features : {len(FEATURE_COLS_CACHE)}")
+print(f"\nfeature count: {len(FEATURE_COLS_CACHE)}")
 
 print(f"\n{'─'*60}")
-print("FEATURE NAMES:")
+print("feature names:")
 print(f"{'─'*60}")
 for i, name in enumerate(FEATURE_COLS_CACHE, 1):
     print(f"  {i:>4}. {name}")
 
 print(f"\n{'─'*60}")
-print("COLUMNS DROPPED DUE TO >50% MISSINGNESS:")
+print("dropped columns (>50% missing):")
 print(f"{'─'*60}")
 print(f"  Dataset 1 : {len(dropped_d1)} column(s)")
 for c in dropped_d1:
@@ -508,12 +468,10 @@ for c in dropped_d2:
     print(f"    - {c}")
 
 print(f"\n{'─'*60}")
-print("OUTPUT FILES (data/processed/):")
+print("output files (data/processed/):")
 print(f"{'─'*60}")
 for f in sorted(os.listdir(OUTPUT_DIR)):
     size = os.path.getsize(os.path.join(OUTPUT_DIR, f))
     print(f"  {f:<30} {size/1e6:>8.2f} MB")
 
-print("\n" + "="*70)
-print("PIPELINE COMPLETE")
-print("="*70)
+print("\npipeline complete.")

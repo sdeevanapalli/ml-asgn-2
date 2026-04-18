@@ -1,9 +1,9 @@
 import pandas as pd
 
-print("=== BASELINE METRICS ===")
+print("baseline metrics:")
 df = pd.read_csv("models/metrics_baseline.csv")
 print(df.to_string(index=False))
 
-print("\n=== CONTINUAL LEARNING METRICS ===")
+print("\ncontinual learning metrics:")
 cl = pd.read_csv("models/metrics_continual.csv")
 print(cl.to_string(index=False))
