@@ -10,8 +10,9 @@ Binary classification on a synthetic EHR dataset to predict whether a patient ha
 
 ```
 ml_asgn_2/
-├── pipeline.py              # Data ingestion, feature engineering, train/test split
-├── eda.py                   # EDA plots and drift analysis
+├── pipeline.py                        # Data ingestion, feature engineering, train/test split
+├── eda.py                             # EDA plots and drift analysis
+├── TeamXX_Assignment2_dashboard.py    # Streamlit dashboard (5 pages)
 ├── data/
 │   ├── *.csv                # Raw EHR tables (17 files — gitignored, download separately)
 │   ├── processed/           # Pickled train/test splits + scalers
@@ -20,16 +21,31 @@ ml_asgn_2/
 │   │   ├── scaler_d1.pkl, scaler_d2.pkl
 │   │   └── feature_names.pkl
 │   └── eda/                 # 28 PNG plots + drift stats CSV
+└── models/                  # Trained model .pkl files + metrics CSVs + plots
+    ├── metrics_baseline.csv
+    ├── metrics_continual.csv
+    ├── roc_curves.png
+    ├── confusion_matrices.png
+    ├── feature_importance_dt.png
+    └── continual_learning_comparison.png
 ```
 
 ---
 
 ## Setup
 
+**Python version:** 3.11 (required — the pickle files were generated with Python 3.11 + NumPy 2.x)
+
 ```bash
-python -m venv venv && source venv/bin/activate
-pip install pandas numpy scikit-learn matplotlib seaborn imbalanced-learn streamlit
+python3.11 -m venv venv && source venv/bin/activate
+pip install pandas numpy scikit-learn matplotlib seaborn imbalanced-learn streamlit pillow joblib
 ```
+
+> If you're on macOS with the system Python 3.11 at `/Library/Frameworks/Python.framework/Versions/3.11/`, use:
+> ```bash
+> /Library/Frameworks/Python.framework/Versions/3.11/bin/pip3 install \
+>     pandas numpy scikit-learn matplotlib seaborn imbalanced-learn streamlit pillow joblib
+> ```
 
 **Download raw data:** Get the 17 CSV files from Google Drive and place them directly in `data/`.
 
@@ -41,6 +57,30 @@ pip install pandas numpy scikit-learn matplotlib seaborn imbalanced-learn stream
 python pipeline.py   # generates data/processed/*.pkl
 python eda.py        # generates data/eda/*.png
 ```
+
+> Skip these steps if `data/processed/` and `data/eda/` are already populated.
+
+---
+
+## Running the Dashboard
+
+```bash
+streamlit run TeamXX_Assignment2_dashboard.py
+```
+
+Then open [http://localhost:8501](http://localhost:8501) in your browser.
+
+The dashboard has 5 pages (navigate via the left sidebar):
+
+| Page | Contents |
+|------|----------|
+| 🏠 Project Overview | Pipeline architecture, team roles, dataset summary |
+| 📊 Exploratory Data Analysis | Class distribution, demographics, clinical features, drift, missing values |
+| 🤖 Model Performance | Per-metric bar charts, full metrics table, ROC curves, confusion matrices |
+| 🔄 Continual Learning | MLP before/after fine-tuning, catastrophic forgetting analysis |
+| 🔍 Feature Importance | Decision Tree top-20 features, feature category breakdown, searchable list |
+
+**No models are retrained** — all assets are loaded directly from `data/processed/` and `models/`.
 
 ---
 
