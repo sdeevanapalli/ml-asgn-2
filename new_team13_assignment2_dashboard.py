@@ -587,30 +587,58 @@ elif page == "Exploratory Data Analysis":
                 st.pyplot(fig, use_container_width=True)
                 plt.close(fig)
 
+        st.markdown("**Income Distribution by Label**")
+        if "INCOME" in X_train_d1.columns:
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+            for ax, (X_t, y_t, title) in zip(axes, [
+                (X_train_d1, y_train_d1, "D1 (Historical)"),
+                (X_train_d2, y_train_d2, "D2 (Current)")
+            ]):
+                plot_df = X_t[["INCOME"]].copy()
+                plot_df["label"] = y_t.values
+                groups = [plot_df[plot_df["label"]==l]["INCOME"].dropna()
+                          for l in [0, 1]]
+                ax.boxplot(groups, labels=["No condition", "Has condition"],
+                           patch_artist=True,
+                           boxprops=dict(facecolor="steelblue", alpha=0.7))
+                ax.set_title(f"Income by label — {title}")
+                ax.set_ylabel("Scaled income")
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
+
     # ── Clinical Features ─────────────────────────────────────────────────────
     elif eda_section == "Clinical Features":
         st.subheader("Clinical Feature Distributions")
 
-        obs_cols = [c for c in feature_names if c.startswith("obs_") and "_mean" in c]
-        if obs_cols:
-            selected_obs = st.selectbox("Select clinical feature", obs_cols)
-            fig, ax = plt.subplots(figsize=(10, 5))
-            for label, colour, lname in [(0, "steelblue", "No Condition"),
-                                          (1, "darkorange", "Has Condition")]:
-                vals = X_train_d1.loc[y_train_d1 == label, selected_obs].dropna()
-                ax.hist(vals, bins=30, alpha=0.6, color=colour,
-                        label=lname, density=True)
-            ax.set_xlabel(selected_obs + " (scaled)")
-            ax.set_ylabel("Density")
-            ax.set_title(f"{selected_obs} — Distribution by Label (D1 Training)")
-            ax.legend()
+        clinical_cols = [c for c in feature_names if any(x in c for x in
+            ["Body_Height", "Body_Weight", "BMI", "Diastolic", "Systolic",
+             "Heart_rate", "Cholesterol"])]
+        clinical_cols = [c for c in clinical_cols if "_mean" in c][:7]
+
+        if clinical_cols:
+            selected_clin = st.selectbox("Select clinical feature", clinical_cols)
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+            for ax, (X_t, y_t, title) in zip(axes, [
+                (X_train_d1, y_train_d1, "D1 (Historical)"),
+                (X_train_d2, y_train_d2, "D2 (Current)")
+            ]):
+                if selected_clin in X_t.columns:
+                    plot_df = X_t[[selected_clin]].copy()
+                    plot_df["label"] = y_t.values
+                    for label, color in [(0, "steelblue"), (1, "darkorange")]:
+                        subset = plot_df[plot_df["label"]==label][selected_clin]
+                        ax.violinplot(subset.dropna(), positions=[label],
+                                      showmedians=True)
+                    ax.set_title(f"{selected_clin} — {title}")
+                    ax.set_xticks([0, 1])
+                    ax.set_xticklabels(["No condition", "Has condition"])
+                    ax.set_ylabel("Scaled value")
             plt.tight_layout()
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
-            st.caption("Distribution split by label (0=no condition, 1=has condition) "
-                       "for the D1 training set.")
+            st.pyplot(fig)
+            plt.close()
         else:
-            st.info("No observation features found in the feature set.")
+            st.info("No clinical observation features found in this dataset.")
 
     # ── Healthcare Utilization ────────────────────────────────────────────────
     elif eda_section == "Healthcare Utilization":
