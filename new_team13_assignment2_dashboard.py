@@ -1,9 +1,9 @@
-# ── CONFIGURATION ──────────────────────────────────────────────────────────
+# ── CONFIGURATION ─────────────────────────────────────────────────────────────
 DATA_DIR = "data/"
 RANDOM_STATE = 42
 TEMPORAL_CUTOFF = "2020-01-01"
 TEST_SIZE = 0.2
-# ───────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
 
 import streamlit as st
 import pandas as pd
@@ -24,9 +24,12 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                               ConfusionMatrixDisplay, roc_curve, auc)
 from imblearn.over_sampling import SMOTE
 
+# ══════════════════════════════════════════════════════════════════════════════
+# UI — PAGE CONFIG
+# ══════════════════════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Clinical Prediction · Team 13",
-    page_icon="🏥",
+    page_icon="⚕",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -42,179 +45,659 @@ NAV_ITEMS = [
     ("Feature Importance",        "05"),
 ]
 
+# ══════════════════════════════════════════════════════════════════════════════
+# UI — GLOBAL CSS
+# Design: dark charcoal base, muted amber accent, Inter/system-ui type
+# No gradients, no glows, no decorative elements — clean analytics tool
+# ══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/* ── Tokens ── */
 :root {
-    --ink:        #1a1f2e;
-    --ink-soft:   #3d4a5c;
-    --paper:      #f5f0e8;
-    --paper-warm: #ede8dc;
-    --paper-deep: #ddd6c8;
-    --white:      #ffffff;
-    --sb-bg:      #1b2132;
-    --sb-border:  #262f45;
-    --teal:  #2a9d8f;
-    --red:   #e05a3a;
-    --amber: #e9a84c;
-    --indig: #5c6bc0;
-    --muted: #8a96a8;
-    --font-d: 'Syne', sans-serif;
-    --font-b: 'Instrument Sans', sans-serif;
-    --font-m: 'JetBrains Mono', monospace;
+    --bg:           #171a1f;
+    --bg-raised:    #1e2128;
+    --bg-hover:     #252830;
+    --border:       #2a2e38;
+    --border-light: #323741;
+
+    --text-primary:   #e8eaf0;
+    --text-secondary: #9099aa;
+    --text-muted:     #555e6e;
+
+    --amber:      #d4a84b;
+    --amber-dim:  rgba(212,168,75,0.12);
+    --amber-border: rgba(212,168,75,0.25);
+
+    --green:      #4caf82;
+    --green-dim:  rgba(76,175,130,0.1);
+
+    --red:        #e05c5c;
+    --red-dim:    rgba(224,92,92,0.1);
+
+    --font:  'Inter', system-ui, -apple-system, sans-serif;
+    --mono:  'JetBrains Mono', 'Courier New', monospace;
 }
 
+/* ── Reset ── */
 html, body, [class*="css"] {
-    font-family: var(--font-b) !important;
-    background: var(--paper) !important;
-    color: var(--ink) !important;
+    font-family: var(--font) !important;
+    background:  var(--bg) !important;
+    color:       var(--text-primary) !important;
 }
 .main .block-container {
-    background: var(--paper) !important;
-    padding: 2rem 2.5rem 4rem !important;
-    max-width: 1380px !important;
+    background:  var(--bg) !important;
+    padding:     2rem 2.5rem 4rem !important;
+    max-width:   1360px !important;
 }
+.main > div { padding-top: 0 !important; }
 
-/* Sidebar */
+/* ── Sidebar ── */
 section[data-testid="stSidebar"] {
-    background: var(--sb-bg) !important;
-    border-right: 1px solid var(--sb-border) !important;
+    background:   var(--bg-raised) !important;
+    border-right: 1px solid var(--border) !important;
+    min-width:    220px !important;
+    max-width:    220px !important;
 }
-section[data-testid="stSidebar"] .block-container { padding: 0 !important; }
-
-/* Hide default radio */
+section[data-testid="stSidebar"] .block-container {
+    padding: 0 !important;
+}
 div[data-testid="stRadio"] { display: none !important; }
 
-/* Sidebar buttons */
+/* sidebar nav buttons */
 section[data-testid="stSidebar"] div[data-testid="stButton"] > button {
-    background: transparent !important;
-    border: 1px solid transparent !important;
-    border-radius: 7px !important;
-    color: #7a8ba8 !important;
-    font-family: 'Syne', sans-serif !important;
-    font-size: 0.83rem !important;
-    font-weight: 500 !important;
-    text-align: left !important;
-    padding: 0.55rem 0.8rem !important;
-    width: 100% !important;
-    margin-bottom: 2px !important;
-    box-shadow: none !important;
-    transition: all 0.12s ease !important;
+    background:    transparent !important;
+    border:        none !important;
+    border-radius: 0 !important;
+    border-left:   2px solid transparent !important;
+    color:         var(--text-muted) !important;
+    font-family:   var(--font) !important;
+    font-size:     0.8rem !important;
+    font-weight:   400 !important;
+    text-align:    left !important;
+    padding:       0.6rem 1.25rem !important;
+    width:         100% !important;
+    margin:        0 !important;
+    box-shadow:    none !important;
+    letter-spacing: 0 !important;
+    transition:    color 0.1s, border-color 0.1s, background 0.1s !important;
 }
 section[data-testid="stSidebar"] div[data-testid="stButton"] > button:hover {
-    background: rgba(255,255,255,0.06) !important;
-    color: #c8d5e8 !important;
-    border-color: rgba(255,255,255,0.08) !important;
+    background:        var(--bg-hover) !important;
+    color:             var(--text-primary) !important;
+    border-left-color: var(--amber) !important;
 }
 section[data-testid="stSidebar"] div[data-testid="stButton"] > button:focus {
-    box-shadow: none !important; outline: none !important;
+    box-shadow: none !important;
+    outline:    none !important;
 }
 
-/* Headings */
-h1 { font-family: var(--font-d) !important; font-size: 2.3rem !important; font-weight: 800 !important; color: var(--ink) !important; letter-spacing: -0.025em !important; line-height: 1.1 !important; }
-h2, h3 { font-family: var(--font-d) !important; color: var(--ink) !important; font-weight: 700 !important; }
+/* ── Headings ── */
+h1, h2, h3, h4, h5 {
+    font-family:     var(--font) !important;
+    font-weight:     700 !important;
+    color:           var(--text-primary) !important;
+    letter-spacing:  -0.02em !important;
+    line-height:     1.2 !important;
+    font-style:      normal !important;
+}
+h1 { font-size: 1.75rem !important; }
+h2 { font-size: 1.35rem !important; }
+h3 { font-size: 1.1rem  !important; }
 
-/* Metrics */
+/* ── st.metric ── */
 [data-testid="metric-container"] {
-    background: var(--white) !important;
-    border: 1.5px solid var(--paper-deep) !important;
-    border-radius: 10px !important;
-    padding: 1rem 1.15rem !important;
-    box-shadow: 2px 3px 0 var(--paper-deep) !important;
+    background:    var(--bg-raised) !important;
+    border:        1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding:       1.1rem 1.25rem !important;
+    box-shadow:    none !important;
 }
-[data-testid="stMetricLabel"] { font-family: var(--font-m) !important; font-size: 0.63rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: var(--muted) !important; }
-[data-testid="stMetricValue"] { font-family: var(--font-d) !important; font-size: 1.85rem !important; font-weight: 800 !important; color: var(--ink) !important; }
+[data-testid="stMetricLabel"] {
+    font-family:     var(--mono) !important;
+    font-size:       0.65rem !important;
+    font-weight:     500 !important;
+    letter-spacing:  0.08em !important;
+    text-transform:  uppercase !important;
+    color:           var(--text-muted) !important;
+}
+[data-testid="stMetricValue"] {
+    font-family:  var(--font) !important;
+    font-size:    1.75rem !important;
+    font-weight:  700 !important;
+    color:        var(--text-primary) !important;
+    line-height:  1.1 !important;
+    font-style:   normal !important;
+}
+[data-testid="stMetricDelta"] {
+    font-family: var(--mono) !important;
+    font-size:   0.7rem !important;
+}
+/* delta color overrides */
+[data-testid="stMetricDelta"][data-direction="positive"] { color: var(--green) !important; }
+[data-testid="stMetricDelta"][data-direction="negative"] { color: var(--red)   !important; }
 
-/* Selectbox */
-div[data-baseweb="select"] > div { background: var(--white) !important; border: 1.5px solid var(--paper-deep) !important; border-radius: 8px !important; font-family: var(--font-b) !important; font-size: 0.9rem !important; color: var(--ink) !important; box-shadow: 1px 2px 0 var(--paper-deep) !important; }
-div[data-baseweb="popover"] { background: var(--white) !important; border: 1.5px solid var(--paper-deep) !important; border-radius: 8px !important; }
-li[role="option"] { background: var(--white) !important; color: var(--ink) !important; font-size: 0.875rem !important; }
-li[role="option"]:hover { background: var(--paper) !important; }
+/* ── Selectbox ── */
+div[data-baseweb="select"] > div {
+    background:    var(--bg-raised) !important;
+    border:        1px solid var(--border-light) !important;
+    border-radius: 5px !important;
+    font-family:   var(--font) !important;
+    font-size:     0.85rem !important;
+    color:         var(--text-primary) !important;
+    box-shadow:    none !important;
+}
+div[data-baseweb="popover"] {
+    background:    var(--bg-raised) !important;
+    border:        1px solid var(--border-light) !important;
+    border-radius: 5px !important;
+}
+li[role="option"] {
+    background:  var(--bg-raised) !important;
+    color:       var(--text-secondary) !important;
+    font-size:   0.85rem !important;
+    font-family: var(--font) !important;
+    padding:     0.45rem 0.75rem !important;
+}
+li[role="option"]:hover {
+    background: var(--bg-hover) !important;
+    color:      var(--text-primary) !important;
+}
 
-/* Text input */
-input[type="text"] { background: var(--white) !important; border: 1.5px solid var(--paper-deep) !important; border-radius: 8px !important; font-family: var(--font-m) !important; font-size: 0.875rem !important; color: var(--ink) !important; box-shadow: 1px 2px 0 var(--paper-deep) !important; }
+/* ── Text input ── */
+input[type="text"] {
+    background:    var(--bg-raised) !important;
+    border:        1px solid var(--border-light) !important;
+    border-radius: 5px !important;
+    font-family:   var(--mono) !important;
+    font-size:     0.85rem !important;
+    color:         var(--text-primary) !important;
+    padding:       0.5rem 0.75rem !important;
+    box-shadow:    none !important;
+}
+input[type="text"]:focus {
+    border-color: var(--amber) !important;
+    outline:      none !important;
+}
 
-/* Alerts */
-[data-testid="stAlert"] { border-radius: 8px !important; border-left-width: 3px !important; font-size: 0.875rem !important; background: var(--white) !important; color: var(--ink-soft) !important; }
+/* ── Alerts ── */
+[data-testid="stAlert"] {
+    background:       var(--bg-raised) !important;
+    border:           1px solid var(--border) !important;
+    border-left:      3px solid var(--amber) !important;
+    border-radius:    5px !important;
+    color:            var(--text-secondary) !important;
+    font-size:        0.85rem !important;
+    font-family:      var(--font) !important;
+}
 
-/* Dataframe */
-[data-testid="stDataFrame"] { border: 1.5px solid var(--paper-deep) !important; border-radius: 10px !important; overflow: hidden !important; box-shadow: 2px 3px 0 var(--paper-deep) !important; }
+/* ── Dataframe ── */
+[data-testid="stDataFrame"] {
+    border:        1px solid var(--border) !important;
+    border-radius: 6px !important;
+    overflow:      hidden !important;
+}
+[data-testid="stDataFrame"] * {
+    font-family: var(--mono) !important;
+    font-size:   0.8rem !important;
+}
 
-/* HR */
-hr { border: none !important; border-top: 1.5px dashed var(--paper-deep) !important; margin: 1.5rem 0 !important; opacity: 1 !important; }
+/* ── Divider ── */
+hr {
+    border:     none !important;
+    border-top: 1px solid var(--border) !important;
+    margin:     1.75rem 0 !important;
+    opacity:    1 !important;
+}
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--paper); }
-::-webkit-scrollbar-thumb { background: var(--paper-deep); border-radius: 3px; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* ── Spinner ── */
+[data-testid="stSpinner"] > div {
+    color: var(--text-muted) !important;
+    font-size: 0.85rem !important;
+    font-family: var(--mono) !important;
+}
+
+/* ════════════════════════════════════
+   CUSTOM COMPONENTS
+════════════════════════════════════ */
+
+/* Sidebar brand block */
+.sb-brand {
+    padding: 1.5rem 1.25rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+.sb-label {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+.sb-title {
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+.sb-team {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+.sb-nav-section {
+    padding: 1rem 0 0.25rem;
+}
+.sb-nav-label {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 1.25rem;
+    margin-bottom: 0.25rem;
+    display: block;
+    opacity: 0.5;
+}
+.sb-cfg {
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+}
+.sb-cfg-label {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+    opacity: 0.5;
+}
+.sb-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    padding: 0.15rem 0;
+}
+.sb-row span { color: var(--text-secondary); }
 
 /* Page header */
-.ph { margin-bottom: 1.75rem; padding-bottom: 1.25rem; border-bottom: 1.5px dashed var(--paper-deep); }
-.ph-eye { font-family: var(--font-m); font-size: 0.65rem; color: var(--teal); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.3rem; }
-.ph-title { font-family: var(--font-d); font-size: 2rem; font-weight: 800; color: var(--ink); line-height: 1.1; letter-spacing: -0.02em; }
-.ph-desc { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.65; max-width: 620px; font-style: italic; }
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+.page-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+}
+.page-title {
+    font-family: var(--font);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.025em;
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+}
+.page-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    max-width: 580px;
+    font-weight: 400;
+}
 
-/* Sec label */
-.sl { font-family: var(--font-m); font-size: 0.62rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.45rem; }
+/* Section label */
+.sec-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+}
 
-/* Arch grid */
-.ag { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
-.ab { background: var(--white); border: 1.5px solid var(--paper-deep); border-radius: 10px; padding: 1.2rem 1.3rem; box-shadow: 2px 3px 0 var(--paper-deep); }
-.ab-t { font-family: var(--font-m); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.7rem; }
-.ab ul { margin: 0; padding-left: 0; list-style: none; }
-.ab li { font-size: 0.84rem; color: var(--ink-soft); padding: 0.18rem 0; display: flex; gap: 0.5rem; line-height: 1.5; }
-.ab li::before { content: '→'; color: var(--teal); font-size: 0.72rem; flex-shrink: 0; margin-top: 0.07rem; }
+/* Insight list block */
+.insight-block {
+    background:   var(--bg-raised);
+    border:       1px solid var(--border);
+    border-left:  2px solid var(--amber);
+    border-radius: 0 5px 5px 0;
+    padding:      1rem 1.25rem;
+    margin-bottom: 0.6rem;
+}
+.insight-block-title {
+    font-family:    var(--mono);
+    font-size:      0.62rem;
+    font-weight:    500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--amber);
+    margin-bottom:  0.55rem;
+}
+.insight-block ul {
+    margin:      0;
+    padding:     0;
+    list-style:  none;
+}
+.insight-block li {
+    font-size:   0.85rem;
+    color:       var(--text-secondary);
+    padding:     0.2rem 0;
+    line-height: 1.6;
+    display:     flex;
+    gap:         0.55rem;
+}
+.insight-block li::before {
+    content:    '—';
+    color:      var(--text-muted);
+    flex-shrink: 0;
+    font-size:  0.8rem;
+    margin-top: 0.05rem;
+}
+.insight-block.red  { border-left-color: var(--red);   }
+.insight-block.red  .insight-block-title { color: var(--red); }
+.insight-block.green { border-left-color: var(--green); }
+.insight-block.green .insight-block-title { color: var(--green); }
+.insight-block.dim  { border-left-color: var(--border-light); }
+.insight-block.dim  .insight-block-title { color: var(--text-muted); }
+
+/* Architecture grid */
+.arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+.arch-block {
+    background:    var(--bg-raised);
+    border:        1px solid var(--border);
+    border-radius: 5px;
+    padding:       1.1rem 1.25rem;
+}
+.arch-block-title {
+    font-family:    var(--mono);
+    font-size:      0.62rem;
+    font-weight:    500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    margin-bottom:  0.7rem;
+    padding-bottom: 0.6rem;
+    border-bottom:  1px solid var(--border);
+}
+.arch-block ul { margin: 0; padding: 0; list-style: none; }
+.arch-block li {
+    font-size:   0.83rem;
+    color:       var(--text-secondary);
+    padding:     0.2rem 0;
+    line-height: 1.55;
+}
 
 /* Team grid */
-.tg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 0.75rem; }
-.tc { background: var(--white); border: 1.5px solid var(--paper-deep); border-radius: 10px; padding: 1.2rem; box-shadow: 2px 3px 0 var(--paper-deep); }
-.tc-num { font-family: var(--font-m); font-size: 0.62rem; color: var(--muted); margin-bottom: 0.5rem; }
-.tc-role { font-family: var(--font-m); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.2rem; }
-.tc-name { font-family: var(--font-d); font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 0.4rem; }
-.tc-task { display: inline-block; font-family: var(--font-m); font-size: 0.58rem; background: var(--paper); border: 1px solid var(--paper-deep); border-radius: 4px; padding: 0.15em 0.5em; color: var(--muted); margin-bottom: 0.5rem; }
-.tc-desc { font-size: 0.79rem; color: var(--muted); line-height: 1.55; font-style: italic; }
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+.team-card {
+    background:    var(--bg-raised);
+    border:        1px solid var(--border);
+    border-radius: 5px;
+    padding:       1.1rem;
+}
+.team-num {
+    font-family:  var(--mono);
+    font-size:    0.6rem;
+    color:        var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+.team-role {
+    font-family:    var(--mono);
+    font-size:      0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color:          var(--amber);
+    margin-bottom:  0.25rem;
+}
+.team-name {
+    font-family:   var(--font);
+    font-size:     0.9rem;
+    font-weight:   600;
+    color:         var(--text-primary);
+    margin-bottom: 0.35rem;
+    line-height:   1.3;
+}
+.team-task {
+    display:       inline-block;
+    font-family:   var(--mono);
+    font-size:     0.58rem;
+    background:    var(--bg);
+    border:        1px solid var(--border);
+    border-radius: 3px;
+    padding:       0.15em 0.45em;
+    color:         var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+.team-desc {
+    font-size:   0.78rem;
+    color:       var(--text-muted);
+    line-height: 1.55;
+}
 
-/* Note blocks */
-.nb { background: var(--white); border: 1.5px solid var(--paper-deep); border-left: 3px solid var(--teal); border-radius: 0 8px 8px 0; padding: 1.1rem 1.3rem; margin-bottom: 0.75rem; box-shadow: 2px 3px 0 var(--paper-deep); }
-.nb h4 { font-family: var(--font-m); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); margin: 0 0 0.6rem; }
-.nb ul { margin: 0; padding-left: 1rem; }
-.nb li { font-size: 0.85rem; color: var(--ink-soft); padding: 0.15rem 0; line-height: 1.55; }
-.nb.red  { border-left-color: var(--red);   } .nb.red  h4 { color: var(--red);   }
-.nb.amb  { border-left-color: var(--amber); } .nb.amb  h4 { color: var(--amber); }
-.nb.ind  { border-left-color: var(--indig); } .nb.ind  h4 { color: var(--indig); }
+/* Key insights block on overview */
+.kib {
+    background:    var(--bg-raised);
+    border:        1px solid var(--border);
+    border-radius: 5px;
+    padding:       1.25rem 1.5rem;
+    margin-bottom: 1.75rem;
+}
+.kib-title {
+    font-family:    var(--mono);
+    font-size:      0.62rem;
+    font-weight:    500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    margin-bottom:  1rem;
+}
+.kib-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.kib-item {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+}
+.kib-num {
+    font-family:  var(--mono);
+    font-size:    0.65rem;
+    color:        var(--amber);
+    flex-shrink:  0;
+    margin-top:   0.15rem;
+    min-width:    1.5rem;
+}
+.kib-text {
+    font-size:   0.85rem;
+    color:       var(--text-secondary);
+    line-height: 1.6;
+}
 
-/* Sidebar layout */
-.sb-brand { padding: 1.5rem 1.3rem 1.1rem; border-bottom: 1px solid #262f45; }
-.sb-icon  { font-size: 1.5rem; display: block; margin-bottom: 0.45rem; }
-.sb-title { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 800; color: #eee8dc; line-height: 1.2; }
-.sb-sub   { font-size: 0.67rem; color: #4a5a76; margin-top: 0.25rem; }
-.sb-badge { display: inline-block; margin-top: 0.6rem; background: rgba(42,157,143,0.15); color: #2a9d8f; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.25em 0.6em; border-radius: 4px; border: 1px solid rgba(42,157,143,0.28); }
-.sb-nav-wrap { padding: 0.9rem 0.85rem 0.5rem; }
-.sb-nl { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; letter-spacing: 0.18em; text-transform: uppercase; color: #353f55; padding: 0 0.4rem; margin-bottom: 0.45rem; }
-.sb-cfg { padding: 0.9rem 1.3rem 1.3rem; border-top: 1px solid #262f45; }
-.sb-cfg-t { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; color: #353f55; margin-bottom: 0.55rem; }
-.sb-cfg-r { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #5a6a88; display: flex; justify-content: space-between; padding: 0.12rem 0; }
-.sb-cfg-r span { color: #8a9ab8; }
+/* Before/after stat cells (Continual Learning) */
+.cl-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.cl-cell {
+    background:    var(--bg-raised);
+    border:        1px solid var(--border);
+    border-radius: 5px;
+    padding:       1rem 1.1rem;
+}
+.cl-label {
+    font-family:    var(--mono);
+    font-size:      0.6rem;
+    font-weight:    500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    margin-bottom:  0.5rem;
+}
+.cl-values {
+    display:     flex;
+    align-items: baseline;
+    gap:         0.4rem;
+    margin-bottom: 0.3rem;
+}
+.cl-before {
+    font-family:  var(--font);
+    font-size:    1.5rem;
+    font-weight:  700;
+    color:        var(--text-muted);
+    line-height:  1;
+}
+.cl-arrow {
+    font-size: 0.8rem;
+    color:     var(--text-muted);
+}
+.cl-after {
+    font-family:  var(--font);
+    font-size:    1.5rem;
+    font-weight:  700;
+    color:        var(--text-primary);
+    line-height:  1;
+}
+.cl-delta {
+    font-family: var(--mono);
+    font-size:   0.7rem;
+}
+.cl-delta.pos { color: var(--green); }
+.cl-delta.neg { color: var(--red);   }
+.cl-note {
+    font-family:   var(--mono);
+    font-size:     0.72rem;
+    color:         var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+/* Model tags */
+.model-tags {
+    display:     flex;
+    gap:         0.5rem;
+    margin-bottom: 1.25rem;
+}
+.model-tag {
+    font-family:    var(--mono);
+    font-size:      0.68rem;
+    color:          var(--text-muted);
+    background:     var(--bg-raised);
+    border:         1px solid var(--border);
+    border-radius:  4px;
+    padding:        0.2em 0.6em;
+}
+
+/* Section sep */
+.sep {
+    display:         flex;
+    align-items:     center;
+    gap:             0.75rem;
+    margin:          1.75rem 0 1.25rem;
+}
+.sep-text {
+    font-family:    var(--mono);
+    font-size:      0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    white-space:    nowrap;
+}
+.sep-line {
+    flex:       1;
+    height:     1px;
+    background: var(--border);
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Matplotlib warm theme ────────────────────────────────────────────────────
-WARM_BG = "#f9f5ef"; CARD_BG = "#ffffff"; INK = "#1a1f2e"; INK_SOFT = "#3d4a5c"
-MUTED = "#9aa5b8"; BORDER = "#ddd6c8"
-C_TEAL = "#2a9d8f"; C_RED = "#e05a3a"; C_AMBER = "#e9a84c"; C_INDIG = "#5c6bc0"
+# ══════════════════════════════════════════════════════════════════════════════
+# UI — MATPLOTLIB DARK THEME (matches the dark UI)
+# ══════════════════════════════════════════════════════════════════════════════
+BG       = "#171a1f"
+BG_CARD  = "#1e2128"
+FG       = "#e8eaf0"
+FG_SOFT  = "#9099aa"
+FG_MUTED = "#555e6e"
+BORDER   = "#2a2e38"
+
+C_AMBER  = "#d4a84b"
+C_GREEN  = "#4caf82"
+C_RED    = "#e05c5c"
+C_TEAL   = "#4caf82"   # reuse green for teal slots
+C_INDIG  = "#7a8fc4"
 
 matplotlib.rcParams.update({
-    'font.family':'sans-serif', 'axes.facecolor':CARD_BG, 'figure.facecolor':WARM_BG,
-    'axes.edgecolor':BORDER, 'axes.labelcolor':INK_SOFT, 'xtick.color':MUTED, 'ytick.color':MUTED,
-    'text.color':INK, 'axes.titlecolor':INK, 'axes.grid':True, 'grid.color':BORDER,
-    'grid.linestyle':'--', 'grid.linewidth':0.6, 'grid.alpha':0.8,
-    'legend.facecolor':CARD_BG, 'legend.edgecolor':BORDER, 'legend.labelcolor':INK_SOFT,
-    'axes.titlesize':11, 'axes.labelsize':9, 'axes.titleweight':'bold',
-    'axes.spines.top':False, 'axes.spines.right':False,
+    "font.family":       "sans-serif",
+    "font.size":         9,
+    "figure.facecolor":  BG_CARD,
+    "axes.facecolor":    BG_CARD,
+    "axes.edgecolor":    BORDER,
+    "axes.labelcolor":   FG_SOFT,
+    "axes.titlecolor":   FG,
+    "axes.titlesize":    10,
+    "axes.titleweight":  "bold",
+    "axes.labelsize":    8.5,
+    "axes.spines.top":   False,
+    "axes.spines.right": False,
+    "axes.spines.left":  True,
+    "axes.spines.bottom":True,
+    "axes.grid":         True,
+    "grid.color":        BORDER,
+    "grid.linestyle":    "-",
+    "grid.linewidth":    0.5,
+    "grid.alpha":        1,
+    "xtick.color":       FG_MUTED,
+    "ytick.color":       FG_MUTED,
+    "xtick.labelsize":   8,
+    "ytick.labelsize":   8,
+    "text.color":        FG,
+    "legend.facecolor":  BG_CARD,
+    "legend.edgecolor":  BORDER,
+    "legend.labelcolor": FG_SOFT,
+    "legend.fontsize":   8.5,
+    "legend.framealpha": 1,
 })
 
-# ── PIPELINE ─────────────────────────────────────────────────────────────────
+# Shorthand for inline style strings
+INK_SOFT = FG_SOFT
+MUTED    = FG_MUTED
+INK      = FG
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PIPELINE — UNTOUCHED
+# ══════════════════════════════════════════════════════════════════════════════
 @st.cache_data
 def run_pipeline():
     patients     = pd.read_csv(DATA_DIR + "patients.csv", on_bad_lines="skip")
@@ -356,38 +839,39 @@ def run_pipeline():
                 mlp=mlp,mlp_cl=mlp_cl,d1_size=len(df1),d2_size=len(df2),total_patients=len(df),
                 missing_series=missing_series)
 
-# ── SIDEBAR ──────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# UI — SIDEBAR
+# ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown("""
     <div class="sb-brand">
-        <span class="sb-icon">🏥</span>
-        <div class="sb-title">Clinical<br>Prediction</div>
-        <div class="sb-sub">BITS F464 · Machine Learning</div>
-        <span class="sb-badge">Team 13 · Sem 2 2025–26</span>
+        <div class="sb-label">Internal Analytics</div>
+        <div class="sb-title">Clinical Condition<br>Prediction</div>
+        <div class="sb-team">BITS F464 · ML · Team 13</div>
     </div>
-    <div class="sb-nav-wrap">
-        <div class="sb-nl">Pages</div>
+    <div class="sb-nav-section">
+        <span class="sb-nav-label">Pages</span>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div style="padding: 0 0.85rem;">', unsafe_allow_html=True)
     for full_name, num in NAV_ITEMS:
         if st.button(f"{num}  {full_name}", key=f"nav_{num}", use_container_width=True):
             st.session_state.page = full_name
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="sb-cfg">
-        <div class="sb-cfg-t">Config</div>
-        <div class="sb-cfg-r">cutoff <span>{TEMPORAL_CUTOFF}</span></div>
-        <div class="sb-cfg-r">test split <span>{int(TEST_SIZE*100)}%</span></div>
-        <div class="sb-cfg-r">random seed <span>{RANDOM_STATE}</span></div>
+        <div class="sb-cfg-label">Run Config</div>
+        <div class="sb-row">cutoff      <span>{TEMPORAL_CUTOFF}</span></div>
+        <div class="sb-row">test split  <span>{int(TEST_SIZE*100)}%</span></div>
+        <div class="sb-row">random seed <span>{RANDOM_STATE}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
-# ── LOAD ─────────────────────────────────────────────────────────────────────
-with st.spinner("Running the pipeline — grab a coffee, first load takes a minute ☕"):
+# ══════════════════════════════════════════════════════════════════════════════
+# PIPELINE LOAD
+# ══════════════════════════════════════════════════════════════════════════════
+with st.spinner("Running pipeline — first load takes ~1 min"):
     data = run_pipeline()
 
 X_train_d1=data["X_train_d1"]; y_train_d1=data["y_train_d1"]; y_test_d1=data["y_test_d1"]
@@ -398,393 +882,610 @@ continual_df=data["continual_df"];   missing_series=data["missing_series"]
 dt_best=data["dt_best"]; svm_best=data["svm_best"]; mlp=data["mlp"]; mlp_cl=data["mlp_cl"]
 page = st.session_state.page
 
-# ── PAGE 1 ────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 1 — PROJECT OVERVIEW
+# ══════════════════════════════════════════════════════════════════════════════
 if page == "Project Overview":
-    st.markdown("""
-    <div class="ph">
-        <div class="ph-eye">BITS F464 · Machine Learning · Team 13</div>
-        <div class="ph-title">Clinical Prediction<br>under Temporal Shift</div>
-        <div class="ph-desc">An end-to-end ML pipeline on synthetic EHR data — predicting clinically
-        significant conditions across historical and current patient cohorts.</div>
-    </div>""", unsafe_allow_html=True)
 
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Total Patients",       f"{data['total_patients']:,}")
-    c2.metric("Feature Dimensions",   len(feature_names))
-    c3.metric("D1 — Historical",      f"{data['d1_size']:,}")
-    c4.metric("D2 — Current",         f"{data['d2_size']:,}")
+    st.markdown("""
+    <div class="page-header">
+        <div class="page-tag">BITS F464 · Machine Learning · Team 13</div>
+        <div class="page-title">Clinical Condition Prediction under Temporal Shift</div>
+        <div class="page-desc">End-to-end ML pipeline on synthetic EHR data. Three classifiers trained on pre-2020 patient records, evaluated on both historical and current cohorts.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Metrics row
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Patients",        f"{data['total_patients']:,}")
+    c2.metric("Feature Dimensions",    len(feature_names))
+    c3.metric("D1 — Pre-2020",         f"{data['d1_size']:,}")
+    c4.metric("D2 — Post-2020",        f"{data['d2_size']:,}")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="sl">Pipeline Architecture</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="ag">
-        <div class="ab"><div class="ab-t">Data Pipeline · Task 2</div><ul>
-            <li>15 CSV files merged on patient ID</li>
-            <li>Temporal split: pre / post 2020-01-01</li>
-            <li>Sparse columns dropped (&gt;50% missing)</li>
-            <li>Binary target: disorder / finding labels</li>
-            <li>StandardScaler fit on training data only</li>
-            <li>80/20 stratified train-test split</li>
-        </ul></div>
-        <div class="ab"><div class="ab-t">Models · Task 3</div><ul>
-            <li>Decision Tree — GridSearchCV, balanced weights</li>
-            <li>SVM RBF kernel — GridSearchCV, balanced weights</li>
-            <li>MLP 128→64→32 — SMOTE oversampling</li>
-        </ul></div>
-        <div class="ab"><div class="ab-t">Class Imbalance Strategy</div><ul>
-            <li>Majority label=0 (no clinical condition)</li>
-            <li>Minority label=1 (disorder / finding)</li>
-            <li>DT + SVM: class_weight="balanced"</li>
-            <li>MLP: SMOTE synthetic oversampling</li>
-        </ul></div>
-        <div class="ab"><div class="ab-t">Temporal Dataset Split</div><ul>
-            <li>D1: first encounter before 2020</li>
-            <li>D2: any encounter from 2020 onward</li>
-            <li>Overlap intentional — tests generalization</li>
-            <li>Models trained on D1, evaluated on both</li>
-        </ul></div>
-    </div>""", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="sl">The Team</div>', unsafe_allow_html=True)
+    # Key insights block
     st.markdown("""
-    <div class="tg">
-        <div class="tc"><div class="tc-num">01 / 04</div><div class="tc-role">Data Architect</div>
-            <div class="tc-name">Shriniketh Deevanapalli</div>
-            <span class="tc-task">Task 2 (a, b, c)</span>
-            <div class="tc-desc">Merged 15 CSV tables, implemented the temporal split, and engineered the feature dataset with StandardScaler.</div></div>
-        <div class="tc"><div class="tc-num">02 / 04</div><div class="tc-role">ML Engineer</div>
-            <div class="tc-name">Sanvi Udhan</div>
-            <span class="tc-task">Task 3 (a,b,c) + Task 4</span>
-            <div class="tc-desc">Trained DT, SVM, and MLP. Implemented continual learning via partial_fit and compiled all performance metrics.</div></div>
-        <div class="tc"><div class="tc-num">03 / 04</div><div class="tc-role">Full-Stack Dev</div>
-            <div class="tc-name">Sai Dheeraj Yadavalli</div>
-            <span class="tc-task">Task 1 + Task 5</span>
-            <div class="tc-desc">Built this Streamlit dashboard and integrated outputs from all team members into interactive visualizations.</div></div>
-        <div class="tc"><div class="tc-num">04 / 04</div><div class="tc-role">Data Analyst</div>
-            <div class="tc-name">Shambhavi Rani</div>
-            <span class="tc-task">Task 2(d) + Task 3(d,e,f) + Task 5</span>
-            <div class="tc-desc">EDA, bias-variance analysis, feature importance write-up, and the final video presentation.</div></div>
-    </div>""", unsafe_allow_html=True)
+    <div class="kib">
+        <div class="kib-title">Key Findings</div>
+        <div class="kib-grid">
+            <div class="kib-item">
+                <div class="kib-num">01</div>
+                <div class="kib-text">MLP with SMOTE achieves the strongest F1 on D2. Oversampling outperforms class weighting for heavily imbalanced clinical data.</div>
+            </div>
+            <div class="kib-item">
+                <div class="kib-num">02</div>
+                <div class="kib-text">Observation features (vitals and labs) dominate the top-20 importance rankings. Clinical signals outperform demographics throughout.</div>
+            </div>
+            <div class="kib-item">
+                <div class="kib-num">03</div>
+                <div class="kib-text">Continual fine-tuning via partial_fit() causes catastrophic forgetting. The D1-trained MLP generalises to D2 without retraining.</div>
+            </div>
+            <div class="kib-item">
+                <div class="kib-num">04</div>
+                <div class="kib-text">Accuracy is misleading under class imbalance. F1 and ROC-AUC are the correct metrics for evaluating clinical classifiers.</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ── PAGE 2 ────────────────────────────────────────────────────────────────────
+    # Pipeline architecture
+    st.markdown("""
+    <div class="sep">
+        <span class="sep-text">Pipeline Architecture</span>
+        <div class="sep-line"></div>
+    </div>
+    <div class="arch-grid">
+        <div class="arch-block">
+            <div class="arch-block-title">Data Pipeline · Task 2</div>
+            <ul>
+                <li>15 CSV files merged on patient ID</li>
+                <li>Temporal split: pre / post 2020-01-01</li>
+                <li>Sparse columns dropped (&gt;50% missing)</li>
+                <li>Binary target: disorder / finding labels</li>
+                <li>StandardScaler fit on training data only</li>
+                <li>80 / 20 stratified train-test split</li>
+            </ul>
+        </div>
+        <div class="arch-block">
+            <div class="arch-block-title">Models · Task 3</div>
+            <ul>
+                <li>Decision Tree — GridSearchCV, balanced class weights</li>
+                <li>SVM RBF kernel — GridSearchCV, balanced class weights</li>
+                <li>MLP 128→64→32 — SMOTE oversampling on training set</li>
+            </ul>
+        </div>
+        <div class="arch-block">
+            <div class="arch-block-title">Class Imbalance Strategy</div>
+            <ul>
+                <li>Majority: label = 0 (no clinical condition)</li>
+                <li>Minority: label = 1 (disorder or finding)</li>
+                <li>DT + SVM: class_weight = "balanced"</li>
+                <li>MLP: SMOTE synthetic minority oversampling</li>
+            </ul>
+        </div>
+        <div class="arch-block">
+            <div class="arch-block-title">Temporal Dataset Split</div>
+            <ul>
+                <li>D1: first encounter before 2020-01-01</li>
+                <li>D2: any encounter from 2020-01-01 onward</li>
+                <li>Overlap is intentional — tests generalisation</li>
+                <li>All models trained on D1, evaluated on both</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Team
+    st.markdown("""
+    <div class="sep" style="margin-top:2rem;">
+        <span class="sep-text">Team</span>
+        <div class="sep-line"></div>
+    </div>
+    <div class="team-grid">
+        <div class="team-card">
+            <div class="team-num">01 / 04</div>
+            <div class="team-role">Data Architect</div>
+            <div class="team-name">Shriniketh Deevanapalli</div>
+            <span class="team-task">Task 2 (a, b, c)</span>
+            <div class="team-desc">Merged 15 CSV tables, implemented the temporal split, and built the feature dataset with StandardScaler.</div>
+        </div>
+        <div class="team-card">
+            <div class="team-num">02 / 04</div>
+            <div class="team-role">ML Engineer</div>
+            <div class="team-name">Sanvi Udhan</div>
+            <span class="team-task">Task 3 (a,b,c) + Task 4</span>
+            <div class="team-desc">Trained DT, SVM, and MLP. Implemented continual learning via partial_fit and compiled all performance metrics.</div>
+        </div>
+        <div class="team-card">
+            <div class="team-num">03 / 04</div>
+            <div class="team-role">Full-Stack Dev</div>
+            <div class="team-name">Sai Dheeraj Yadavalli</div>
+            <span class="team-task">Task 1 + Task 5</span>
+            <div class="team-desc">Built this Streamlit dashboard and integrated outputs from all team members into interactive visualisations.</div>
+        </div>
+        <div class="team-card">
+            <div class="team-num">04 / 04</div>
+            <div class="team-role">Data Analyst</div>
+            <div class="team-name">Shambhavi Rani</div>
+            <span class="team-task">Task 2(d) + Task 3(d,e,f) + Task 5</span>
+            <div class="team-desc">EDA, bias-variance analysis, feature importance write-up, and final video presentation.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 2 — EXPLORATORY DATA ANALYSIS
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Exploratory Data Analysis":
+
     st.markdown("""
-    <div class="ph">
-        <div class="ph-eye">Task 2 · Data Exploration</div>
-        <div class="ph-title">Exploratory Data Analysis</div>
-        <div class="ph-desc">Distributions, demographics, and data quality checks across both historical (D1) and current (D2) cohorts.</div>
-    </div>""", unsafe_allow_html=True)
+    <div class="page-header">
+        <div class="page-tag">Task 2 · Data Exploration</div>
+        <div class="page-title">Exploratory Data Analysis</div>
+        <div class="page-desc">Distributions, demographics, and data quality across historical (D1) and current (D2) cohorts.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("D1 Train Size",    f"{len(y_train_d1):,}")
-    c2.metric("D1 Positive Rate", f"{y_train_d1.mean()*100:.1f}%")
-    c3.metric("D2 Train Size",    f"{len(y_train_d2):,}")
-    c4.metric("D2 Positive Rate", f"{y_train_d2.mean()*100:.1f}%")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("D1 Train Samples",  f"{len(y_train_d1):,}")
+    c2.metric("D1 Positive Rate",  f"{y_train_d1.mean()*100:.1f}%")
+    c3.metric("D2 Train Samples",  f"{len(y_train_d2):,}")
+    c4.metric("D2 Positive Rate",  f"{y_train_d2.mean()*100:.1f}%")
 
-    st.markdown("---")
-    st.markdown('<div class="sl">Choose a section</div>', unsafe_allow_html=True)
-    eda_section = st.selectbox("EDA", ["Class Distribution","Demographics","Clinical Features",
-        "Healthcare Utilization","Correlation Heatmap","Data Drift Analysis","Missing Values"],
-        label_visibility="collapsed")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<span class="sec-label">Select analysis</span>', unsafe_allow_html=True)
+    eda_section = st.selectbox(
+        "Analysis",
+        ["Class Distribution","Demographics","Clinical Features",
+         "Healthcare Utilization","Correlation Heatmap","Data Drift Analysis","Missing Values"],
+        label_visibility="collapsed"
+    )
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── EDA sub-sections (logic untouched) ───────────────────────────────────
     if eda_section == "Class Distribution":
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-        for ax, y, title, col in [(axes[0],y_train_d1,"Dataset 1 — Historical",C_TEAL),(axes[1],y_train_d2,"Dataset 2 — Current",C_INDIG)]:
+        for ax, y, title, col in [
+            (axes[0], y_train_d1, "D1 — Historical (pre-2020)", C_GREEN),
+            (axes[1], y_train_d2, "D2 — Current (post-2020)",   C_INDIG)
+        ]:
             counts = y.value_counts().sort_index()
-            bars = ax.bar(["No Condition","Has Condition"],counts.values,color=[col,C_RED],edgecolor="none",width=0.5)
-            ax.set_title(title,pad=12); ax.set_ylabel("Patient Count")
-            ax.bar_label(bars,fmt="%d",fontsize=10,color=INK_SOFT,padding=4); ax.set_ylim(0,counts.max()*1.18)
-        plt.tight_layout(pad=2); st.pyplot(fig,use_container_width=True); plt.close(fig)
-        st.info("Severe class imbalance is consistent across both datasets — not a temporal artifact. Handled via class_weight=balanced and SMOTE.")
+            bars = ax.bar(["No Condition","Has Condition"], counts.values,
+                          color=[col, C_RED], edgecolor="none", width=0.5)
+            ax.set_title(title, pad=12)
+            ax.set_ylabel("Patient Count")
+            ax.bar_label(bars, fmt="%d", fontsize=10, color=FG_SOFT, padding=4)
+            ax.set_ylim(0, counts.max() * 1.18)
+        plt.tight_layout(pad=2)
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+        st.markdown("""
+        <div class="insight-block">
+            <div class="insight-block-title">Class Imbalance</div>
+            <ul>
+                <li>Severe imbalance is consistent across both datasets — not a temporal artifact</li>
+                <li>Handled via class_weight=balanced for DT and SVM; SMOTE for MLP</li>
+                <li>Accuracy alone is a misleading metric here — prioritise F1 and ROC-AUC</li>
+            </ul>
+        </div>""", unsafe_allow_html=True)
 
     elif eda_section == "Demographics":
         demo_options = [c for c in ["age","GENDER","RACE","MARITAL","INCOME"] if c in X_train_d1.columns]
-        selected_demo = st.selectbox("Feature", demo_options)
-        c1,c2 = st.columns(2)
-        for ctx,X_tr,y_tr,title in [(c1,X_train_d1,y_train_d1,"D1 — Historical"),(c2,X_train_d2,y_train_d2,"D2 — Current")]:
+        st.markdown('<span class="sec-label">Feature</span>', unsafe_allow_html=True)
+        selected_demo = st.selectbox("Feature", demo_options, label_visibility="collapsed")
+        c1, c2 = st.columns(2)
+        for ctx, X_tr, y_tr, title in [
+            (c1, X_train_d1, y_train_d1, "D1 — Historical"),
+            (c2, X_train_d2, y_train_d2, "D2 — Current")
+        ]:
             with ctx:
-                st.markdown(f"<div style='font-size:0.78rem;font-weight:600;color:{INK_SOFT};margin-bottom:0.4rem;'>{title}</div>", unsafe_allow_html=True)
-                fig, ax = plt.subplots(figsize=(5.5,4))
+                st.markdown(f"<div style='font-size:0.75rem;font-weight:600;color:{FG_SOFT};margin-bottom:0.5rem;font-family:var(--mono);letter-spacing:0.05em;'>{title}</div>", unsafe_allow_html=True)
+                fig, ax = plt.subplots(figsize=(5.5, 4))
                 if selected_demo in ["age","INCOME"]:
-                    ax.hist(X_tr.loc[y_tr==0,selected_demo].dropna(),bins=28,alpha=0.65,color=C_TEAL,label="No Condition",density=True,edgecolor="none")
-                    ax.hist(X_tr.loc[y_tr==1,selected_demo].dropna(),bins=28,alpha=0.65,color=C_RED, label="Has Condition",density=True,edgecolor="none")
-                    ax.set_xlabel(f"{selected_demo} (scaled)"); ax.set_ylabel("Density"); ax.legend(fontsize=8)
+                    ax.hist(X_tr.loc[y_tr==0, selected_demo].dropna(), bins=28, alpha=0.7, color=C_GREEN, label="No Condition", density=True, edgecolor="none")
+                    ax.hist(X_tr.loc[y_tr==1, selected_demo].dropna(), bins=28, alpha=0.7, color=C_RED,   label="Has Condition", density=True, edgecolor="none")
+                    ax.set_xlabel(f"{selected_demo} (scaled)")
+                    ax.set_ylabel("Density")
+                    ax.legend(fontsize=8)
                 else:
-                    tmp=X_tr[[selected_demo]].copy(); tmp["label"]=y_tr.values
-                    tmp.groupby([selected_demo,"label"]).size().unstack(fill_value=0).plot(kind="bar",ax=ax,color=[C_TEAL,C_RED],edgecolor="none",width=0.6)
-                    ax.set_xlabel(f"{selected_demo} (encoded)"); ax.set_ylabel("Count")
-                    ax.legend(["No Condition","Has Condition"],fontsize=8); ax.set_xticklabels(ax.get_xticklabels(),rotation=0)
-                ax.set_title(f"{selected_demo} by Label",pad=10)
-                plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+                    tmp = X_tr[[selected_demo]].copy(); tmp["label"] = y_tr.values
+                    tmp.groupby([selected_demo,"label"]).size().unstack(fill_value=0).plot(
+                        kind="bar", ax=ax, color=[C_GREEN, C_RED], edgecolor="none", width=0.6)
+                    ax.set_xlabel(f"{selected_demo} (encoded)")
+                    ax.set_ylabel("Count")
+                    ax.legend(["No Condition","Has Condition"], fontsize=8)
+                    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+                ax.set_title(f"{selected_demo} by Label", pad=10)
+                plt.tight_layout()
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
         if "INCOME" in X_train_d1.columns:
             st.markdown("---")
-            fig,axes = plt.subplots(1,2,figsize=(14,5))
-            for ax,(X_t,y_t,title) in zip(axes,[(X_train_d1,y_train_d1,"D1"),(X_train_d2,y_train_d2,"D2")]):
-                plot_df=X_t[["INCOME"]].copy(); plot_df["label"]=y_t.values
-                ax.boxplot([plot_df[plot_df["label"]==l]["INCOME"].dropna() for l in [0,1]],labels=["No condition","Has condition"],
-                           patch_artist=True,widths=0.45,medianprops=dict(color=C_RED,linewidth=2),
-                           boxprops=dict(facecolor=C_TEAL,alpha=0.4,linewidth=0),whiskerprops=dict(color=MUTED),capprops=dict(color=MUTED),
-                           flierprops=dict(marker='o',markerfacecolor=C_TEAL,markersize=3,alpha=0.3,linestyle='none'))
-                ax.set_title(f"Income by Label — {title}",pad=10); ax.set_ylabel("Scaled Income")
-            plt.tight_layout(); st.pyplot(fig); plt.close()
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+            for ax, (X_t, y_t, title) in zip(axes, [(X_train_d1, y_train_d1, "D1"),(X_train_d2, y_train_d2, "D2")]):
+                plot_df = X_t[["INCOME"]].copy(); plot_df["label"] = y_t.values
+                ax.boxplot([plot_df[plot_df["label"]==l]["INCOME"].dropna() for l in [0,1]],
+                           labels=["No condition","Has condition"], patch_artist=True, widths=0.45,
+                           medianprops=dict(color=C_RED, linewidth=2),
+                           boxprops=dict(facecolor=C_GREEN, alpha=0.3, linewidth=0),
+                           whiskerprops=dict(color=FG_MUTED), capprops=dict(color=FG_MUTED),
+                           flierprops=dict(marker='o', markerfacecolor=C_GREEN, markersize=3, alpha=0.3, linestyle='none'))
+                ax.set_title(f"Income by Label — {title}", pad=10)
+                ax.set_ylabel("Scaled Income")
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
 
     elif eda_section == "Clinical Features":
-        clinical_cols=[c for c in feature_names if any(x in c for x in ["Body_Height","Body_Weight","BMI","Diastolic","Systolic","Heart_rate","Cholesterol"]) and "_mean" in c][:7]
+        clinical_cols = [c for c in feature_names if any(x in c for x in ["Body_Height","Body_Weight","BMI","Diastolic","Systolic","Heart_rate","Cholesterol"]) and "_mean" in c][:7]
         if clinical_cols:
-            selected_clin = st.selectbox("Feature", clinical_cols)
-            fig,axes = plt.subplots(1,2,figsize=(14,5))
-            for ax,(X_t,y_t,title) in zip(axes,[(X_train_d1,y_train_d1,"D1"),(X_train_d2,y_train_d2,"D2")]):
+            st.markdown('<span class="sec-label">Feature</span>', unsafe_allow_html=True)
+            selected_clin = st.selectbox("Feature", clinical_cols, label_visibility="collapsed")
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+            for ax, (X_t, y_t, title) in zip(axes, [(X_train_d1, y_train_d1, "D1 — Historical"),(X_train_d2, y_train_d2, "D2 — Current")]):
                 if selected_clin in X_t.columns:
-                    plot_df=X_t[[selected_clin]].copy(); plot_df["label"]=y_t.values
-                    for label,color in [(0,C_TEAL),(1,C_RED)]:
-                        parts=ax.violinplot(plot_df[plot_df["label"]==label][selected_clin].dropna(),positions=[label],showmedians=True,showextrema=True)
+                    plot_df = X_t[[selected_clin]].copy(); plot_df["label"] = y_t.values
+                    for label, color in [(0, C_GREEN),(1, C_RED)]:
+                        parts = ax.violinplot(plot_df[plot_df["label"]==label][selected_clin].dropna(),
+                                              positions=[label], showmedians=True, showextrema=True)
                         for pc in parts.get('bodies',[]): pc.set_facecolor(color); pc.set_alpha(0.5); pc.set_edgecolor("none")
                         parts['cmedians'].set_color(C_AMBER); parts['cmedians'].set_linewidth(2)
                         for p in ['cbars','cmins','cmaxes']:
-                            if p in parts: parts[p].set_color(MUTED)
-                    ax.set_title(f"{selected_clin[:30]} — {title}",pad=10)
-                    ax.set_xticks([0,1]); ax.set_xticklabels(["No condition","Has condition"]); ax.set_ylabel("Scaled value")
-            plt.tight_layout(); st.pyplot(fig); plt.close()
+                            if p in parts: parts[p].set_color(FG_MUTED)
+                    ax.set_title(f"{selected_clin[:30]} — {title}", pad=10)
+                    ax.set_xticks([0,1]); ax.set_xticklabels(["No condition","Has condition"])
+                    ax.set_ylabel("Scaled value")
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
         else:
             st.info("No clinical observation features found.")
 
     elif eda_section == "Healthcare Utilization":
-        util_map={"Encounters":"total_encounters","Medications":"total_medications","Procedures":"total_procedures","Claims":"total_claims"}
-        available={k:v for k,v in util_map.items() if v in X_train_d1.columns}
-        c1,c2=st.columns(2)
-        for i,(name,col) in enumerate(available.items()):
+        util_map = {"Encounters":"total_encounters","Medications":"total_medications","Procedures":"total_procedures","Claims":"total_claims"}
+        available = {k:v for k,v in util_map.items() if v in X_train_d1.columns}
+        c1, c2 = st.columns(2)
+        for i, (name, col) in enumerate(available.items()):
             with (c1 if i%2==0 else c2):
-                st.markdown(f"<div style='font-size:0.78rem;font-weight:600;color:{INK_SOFT};margin-bottom:0.4rem;'>{name}</div>", unsafe_allow_html=True)
-                fig,ax=plt.subplots(figsize=(5.5,4))
-                ax.boxplot([X_train_d1.loc[y_train_d1==l,col].dropna() for l in [0,1]],labels=["No Condition","Has Condition"],
-                           patch_artist=True,widths=0.45,medianprops=dict(color=C_RED,linewidth=2),
-                           boxprops=dict(facecolor=C_TEAL,alpha=0.4,linewidth=0),whiskerprops=dict(color=MUTED),capprops=dict(color=MUTED),
-                           flierprops=dict(marker='o',markerfacecolor=C_TEAL,markersize=3,alpha=0.3,linestyle='none'))
-                ax.set_title(col,pad=10); ax.set_ylabel(f"{col} (scaled)")
-                plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+                st.markdown(f"<div style='font-size:0.75rem;font-weight:600;color:{FG_SOFT};margin-bottom:0.4rem;'>{name}</div>", unsafe_allow_html=True)
+                fig, ax = plt.subplots(figsize=(5.5, 4))
+                ax.boxplot([X_train_d1.loc[y_train_d1==l, col].dropna() for l in [0,1]],
+                           labels=["No Condition","Has Condition"], patch_artist=True, widths=0.45,
+                           medianprops=dict(color=C_RED, linewidth=2),
+                           boxprops=dict(facecolor=C_GREEN, alpha=0.3, linewidth=0),
+                           whiskerprops=dict(color=FG_MUTED), capprops=dict(color=FG_MUTED),
+                           flierprops=dict(marker='o', markerfacecolor=C_GREEN, markersize=3, alpha=0.3, linestyle='none'))
+                ax.set_title(col, pad=10)
+                ax.set_ylabel(f"{col} (scaled)")
+                plt.tight_layout()
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
 
     elif eda_section == "Correlation Heatmap":
-        tmp=X_train_d1.copy(); tmp["label"]=y_train_d1.values
-        top30=tmp.corr()["label"].drop("label").abs().sort_values(ascending=False).head(30).index.tolist()
-        corr_mat=tmp[top30+["label"]].corr()
-        fig,ax=plt.subplots(figsize=(14,12))
-        im=ax.imshow(corr_mat,cmap="RdBu_r",aspect="auto",vmin=-1,vmax=1)
-        cb=plt.colorbar(im,ax=ax,shrink=0.75); cb.ax.tick_params(labelsize=8)
-        labels=top30+["label"]
+        tmp = X_train_d1.copy(); tmp["label"] = y_train_d1.values
+        top30 = tmp.corr()["label"].drop("label").abs().sort_values(ascending=False).head(30).index.tolist()
+        corr_mat = tmp[top30 + ["label"]].corr()
+        fig, ax = plt.subplots(figsize=(14, 12))
+        im = ax.imshow(corr_mat, cmap="RdBu_r", aspect="auto", vmin=-1, vmax=1)
+        cb = plt.colorbar(im, ax=ax, shrink=0.75); cb.ax.tick_params(labelsize=8)
+        labels = top30 + ["label"]
         ax.set_xticks(range(len(labels))); ax.set_yticks(range(len(labels)))
-        ax.set_xticklabels(labels,rotation=90,fontsize=7); ax.set_yticklabels(labels,fontsize=7)
-        ax.set_title("Correlation Matrix — Top 30 Features + Label (D1)",pad=14)
-        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
-        st.info("All correlations are weak (r < 0.1), expected with severe class imbalance. Strongest correlates are Cholesterol, Hemoglobin, and Blood Pressure features.")
+        ax.set_xticklabels(labels, rotation=90, fontsize=7)
+        ax.set_yticklabels(labels, fontsize=7)
+        ax.set_title("Correlation Matrix — Top 30 Features + Label (D1)", pad=14)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+        st.info("All correlations are weak (r < 0.1), expected with severe class imbalance. Strongest correlates: Cholesterol, Hemoglobin, Blood Pressure.")
 
     elif eda_section == "Data Drift Analysis":
-        top10=X_train_d1.var().sort_values(ascending=False).head(10).index.tolist()
-        fig,axes=plt.subplots(2,5,figsize=(18,7)); axes=axes.flatten()
-        for i,feat in enumerate(top10):
-            ax=axes[i]
-            ax.hist(X_train_d1[feat].dropna(),bins=25,alpha=0.6,color=C_TEAL,label="D1",density=True,edgecolor="none")
-            d2v=X_train_d2[feat].dropna() if feat in X_train_d2.columns else pd.Series(dtype=float)
-            if len(d2v): ax.hist(d2v,bins=25,alpha=0.6,color=C_RED,label="D2",density=True,edgecolor="none")
-            ax.set_title(feat[:22],fontsize=8); ax.legend(fontsize=7)
-        plt.suptitle("Distribution Shift: D1 vs D2 — Top 10 Features by Variance",y=1.01,fontsize=11)
-        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+        top10 = X_train_d1.var().sort_values(ascending=False).head(10).index.tolist()
+        fig, axes = plt.subplots(2, 5, figsize=(18, 7)); axes = axes.flatten()
+        for i, feat in enumerate(top10):
+            ax = axes[i]
+            ax.hist(X_train_d1[feat].dropna(), bins=25, alpha=0.65, color=C_GREEN, label="D1", density=True, edgecolor="none")
+            d2v = X_train_d2[feat].dropna() if feat in X_train_d2.columns else pd.Series(dtype=float)
+            if len(d2v): ax.hist(d2v, bins=25, alpha=0.65, color=C_RED, label="D2", density=True, edgecolor="none")
+            ax.set_title(feat[:22], fontsize=8); ax.legend(fontsize=7)
+        plt.suptitle("Distribution Shift: D1 vs D2 — Top 10 Features by Variance", y=1.01, fontsize=11)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
         st.warning("Drift analysis on StandardScaled data. Distributions appear similar post-scaling (mean≈0, std≈1). Raw-space drift still exists.")
 
     elif eda_section == "Missing Values":
-        fig,ax=plt.subplots(figsize=(12,6))
-        vals=missing_series.values; cols=missing_series.index.tolist()
-        colors_bar=[C_RED if v>=0.5 else C_TEAL for v in vals[::-1]]
-        bars=ax.barh(cols[::-1],vals[::-1],color=colors_bar,edgecolor="none",height=0.6)
-        ax.axvline(0.5,color=C_AMBER,linestyle="--",linewidth=1.5,label="50% drop threshold")
-        ax.set_xlabel("Missing Rate"); ax.set_title("Top 20 Columns by Missing Rate (D1 pre-filter)",pad=14)
-        ax.bar_label(bars,fmt="%.2f",fontsize=8,color=INK_SOFT,padding=4); ax.legend(); ax.set_xlim(0,1.12)
-        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        vals = missing_series.values; cols = missing_series.index.tolist()
+        colors_bar = [C_RED if v >= 0.5 else C_GREEN for v in vals[::-1]]
+        bars = ax.barh(cols[::-1], vals[::-1], color=colors_bar, edgecolor="none", height=0.6)
+        ax.axvline(0.5, color=C_AMBER, linestyle="--", linewidth=1.5, label="50% drop threshold")
+        ax.set_xlabel("Missing Rate")
+        ax.set_title("Top 20 Columns by Missing Rate (D1 pre-filter)", pad=14)
+        ax.bar_label(bars, fmt="%.2f", fontsize=8, color=FG_SOFT, padding=4)
+        ax.legend(); ax.set_xlim(0, 1.12)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
         st.info("Columns above 50% missingness (red) are dropped before training — typically rare lab tests or sparse allergy panels.")
 
-# ── PAGE 3 ────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 3 — MODEL PERFORMANCE
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Model Performance":
+
     st.markdown("""
-    <div class="ph">
-        <div class="ph-eye">Task 3 · Evaluation</div>
-        <div class="ph-title">Model Performance</div>
-        <div class="ph-desc">Decision Tree, SVM, and MLP compared across historical (D1) and current (D2) test sets.</div>
-    </div>""", unsafe_allow_html=True)
+    <div class="page-header">
+        <div class="page-tag">Task 3 · Evaluation</div>
+        <div class="page-title">Model Performance</div>
+        <div class="page-desc">Decision Tree, SVM, and MLP evaluated on both historical (D1) and current (D2) test sets. All models trained on D1.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown('<div class="sl">Pick a metric</div>', unsafe_allow_html=True)
-    metric = st.selectbox("Metric",["accuracy","precision","recall","f1","roc_auc"],label_visibility="collapsed")
-    pivot = baseline_df.pivot(index="model",columns="evaluated_on",values=metric)
-    fig,ax=plt.subplots(figsize=(9,4.5))
-    x=np.arange(len(pivot)); w=0.36
-    b1=ax.bar(x-w/2,pivot["D1"],w,label="D1 — Historical",color=C_TEAL, edgecolor="none",alpha=0.9)
-    b2=ax.bar(x+w/2,pivot["D2"],w,label="D2 — Current",   color=C_INDIG,edgecolor="none",alpha=0.9)
-    ax.set_xticks(x); ax.set_xticklabels(pivot.index,fontsize=10)
-    ax.set_title(f"{metric.upper()} — All Models on D1 and D2 Test Sets",pad=14)
-    ax.set_ylabel(metric.upper()); ax.set_ylim(0,1.2); ax.legend()
-    ax.bar_label(b1,fmt="%.3f",fontsize=8.5,color=INK_SOFT,padding=4)
-    ax.bar_label(b2,fmt="%.3f",fontsize=8.5,color=INK_SOFT,padding=4)
-    plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+    st.markdown("""
+    <div class="model-tags">
+        <span class="model-tag">DT · Decision Tree</span>
+        <span class="model-tag">SVM · RBF Kernel</span>
+        <span class="model-tag">MLP · 128→64→32</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_sel, _ = st.columns([1, 3])
+    with col_sel:
+        st.markdown('<span class="sec-label">Metric</span>', unsafe_allow_html=True)
+        metric = st.selectbox("Metric", ["accuracy","precision","recall","f1","roc_auc"], label_visibility="collapsed")
+
+    # Logic untouched
+    pivot = baseline_df.pivot(index="model", columns="evaluated_on", values=metric)
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    x = np.arange(len(pivot)); w = 0.36
+    b1 = ax.bar(x-w/2, pivot["D1"], w, label="D1 — Historical", color=C_GREEN, edgecolor="none", alpha=0.9)
+    b2 = ax.bar(x+w/2, pivot["D2"], w, label="D2 — Current",    color=C_INDIG, edgecolor="none", alpha=0.9)
+    ax.set_xticks(x); ax.set_xticklabels(pivot.index, fontsize=10)
+    ax.set_title(f"{metric.upper()} — All Models on D1 and D2 Test Sets", pad=14)
+    ax.set_ylabel(metric.upper()); ax.set_ylim(0, 1.2); ax.legend()
+    ax.bar_label(b1, fmt="%.3f", fontsize=8.5, color=FG_SOFT, padding=4)
+    ax.bar_label(b2, fmt="%.3f", fontsize=8.5, color=FG_SOFT, padding=4)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
 
     st.markdown("---")
-    st.markdown('<div class="sl">Full metrics table</div>', unsafe_allow_html=True)
-    st.dataframe(baseline_df.style.background_gradient(subset=["f1","roc_auc"],cmap="YlGn").format(precision=4),use_container_width=True)
+    st.markdown('<span class="sec-label">Full metrics table</span>', unsafe_allow_html=True)
+    st.dataframe(
+        baseline_df.style.background_gradient(subset=["f1","roc_auc"], cmap="YlGn").format(precision=4),
+        use_container_width=True
+    )
 
     st.markdown("---")
-    models_map={"DT":dt_best,"SVM":svm_best,"MLP":mlp}
-    col_map={"DT":C_TEAL,"SVM":C_RED,"MLP":C_INDIG}
-    c1,c2=st.columns(2)
+    models_map = {"DT": dt_best, "SVM": svm_best, "MLP": mlp}
+    col_map    = {"DT": C_GREEN, "SVM": C_RED,   "MLP": C_INDIG}
+    c1, c2 = st.columns(2)
+
     with c1:
-        st.markdown('<div class="sl">ROC Curves</div>', unsafe_allow_html=True)
-        fig,axes=plt.subplots(1,2,figsize=(11,4.5))
-        for ax,(X_test,y_test,title) in zip(axes,[(X_test_d1,y_test_d1,"D1 — Historical"),(X_test_d2,y_test_d2,"D2 — Current")]):
-            for name,model in models_map.items():
-                probs=model.predict_proba(X_test)[:,1]; fpr,tpr,_=roc_curve(y_test,probs)
-                ax.plot(fpr,tpr,label=f"{name} ({auc(fpr,tpr):.3f})",color=col_map[name],lw=2)
-            ax.plot([0,1],[0,1],linestyle="--",color=MUTED,lw=1)
-            ax.set_xlabel("FPR"); ax.set_ylabel("TPR"); ax.set_title(title,pad=10); ax.legend(fontsize=8)
-        plt.suptitle("ROC Curves",fontsize=11,fontweight="bold")
-        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+        st.markdown('<span class="sec-label">ROC Curves</span>', unsafe_allow_html=True)
+        fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
+        for ax, (X_test, y_test, title) in zip(axes, [(X_test_d1, y_test_d1, "D1 — Historical"),(X_test_d2, y_test_d2, "D2 — Current")]):
+            for name, model in models_map.items():
+                probs = model.predict_proba(X_test)[:,1]; fpr, tpr, _ = roc_curve(y_test, probs)
+                ax.plot(fpr, tpr, label=f"{name} ({auc(fpr,tpr):.3f})", color=col_map[name], lw=2)
+            ax.plot([0,1],[0,1], linestyle="--", color=FG_MUTED, lw=1)
+            ax.set_xlabel("FPR"); ax.set_ylabel("TPR"); ax.set_title(title, pad=10); ax.legend(fontsize=8)
+        plt.suptitle("ROC Curves", fontsize=11, fontweight="bold")
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
     with c2:
-        st.markdown('<div class="sl">Confusion Matrices</div>', unsafe_allow_html=True)
-        fig,axes=plt.subplots(2,3,figsize=(11,7.5))
-        for row,(X_test,y_test,ds) in enumerate([(X_test_d1,y_test_d1,"D1"),(X_test_d2,y_test_d2,"D2")]):
-            for ci,(name,model) in enumerate(models_map.items()):
-                ax=axes[row][ci]
-                disp=ConfusionMatrixDisplay(confusion_matrix(y_test,model.predict(X_test)),display_labels=["Neg","Pos"])
-                disp.plot(ax=ax,colorbar=False,cmap=matplotlib.colors.LinearSegmentedColormap.from_list("w2t",[CARD_BG,C_TEAL],N=256))
-                ax.set_title(f"{name} · {ds}",fontsize=9)
-                for txt in ax.texts: txt.set_color(INK); txt.set_fontsize(10)
-        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+        st.markdown('<span class="sec-label">Confusion Matrices</span>', unsafe_allow_html=True)
+        fig, axes = plt.subplots(2, 3, figsize=(11, 7.5))
+        for row, (X_test, y_test, ds) in enumerate([(X_test_d1, y_test_d1, "D1"),(X_test_d2, y_test_d2, "D2")]):
+            for ci, (name, model) in enumerate(models_map.items()):
+                ax = axes[row][ci]
+                disp = ConfusionMatrixDisplay(confusion_matrix(y_test, model.predict(X_test)), display_labels=["Neg","Pos"])
+                disp.plot(ax=ax, colorbar=False,
+                          cmap=matplotlib.colors.LinearSegmentedColormap.from_list("w2g",[BG_CARD, C_GREEN], N=256))
+                ax.set_title(f"{name} · {ds}", fontsize=9)
+                for txt in ax.texts: txt.set_color(FG); txt.set_fontsize(10)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
 
     st.markdown("---")
     st.markdown("""
-    <div class="nb">
-        <h4>Key Observations</h4>
+    <div class="insight-block">
+        <div class="insight-block-title">Key Observations</div>
         <ul>
-            <li><strong>MLP</strong> achieves the best F1 on D2, thanks to SMOTE balancing</li>
+            <li>MLP achieves the best F1 on D2, thanks to SMOTE balancing</li>
             <li>All models trained on D1, evaluated on both D1 and D2 test sets</li>
-            <li><strong>SVM</strong> ROC-AUC varies with C — sensitive to the scaling step</li>
-            <li><strong>Decision Tree</strong> is consistent but weak at depth 3–5</li>
+            <li>SVM ROC-AUC varies with C — sensitive to the scaling step</li>
+            <li>Decision Tree is consistent but weak at depth 3–5</li>
             <li>Accuracy alone is misleading — F1 and ROC-AUC are what matter here</li>
         </ul>
     </div>
-    <div class="nb ind">
-        <h4>Bias–Variance Trade-off</h4>
+    <div class="insight-block dim">
+        <div class="insight-block-title">Bias–Variance Trade-off</div>
         <ul>
             <li>Decision Tree (depth 3–5): high bias, low variance — underfitting</li>
             <li>SVM RBF: moderate balance — sensitive to C hyperparameter</li>
-            <li>MLP (128→64→32): low bias, higher variance — best generalization with SMOTE</li>
+            <li>MLP (128→64→32): low bias, higher variance — best generalisation with SMOTE</li>
         </ul>
     </div>""", unsafe_allow_html=True)
 
-# ── PAGE 4 ────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 4 — CONTINUAL LEARNING
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Continual Learning":
+
     st.markdown("""
-    <div class="ph">
-        <div class="ph-eye">Task 4 · Adaptation</div>
-        <div class="ph-title">Continual Learning</div>
-        <div class="ph-desc">Fine-tuning the D1-trained MLP on new D2 data via partial_fit() over 50 epochs — and what went wrong.</div>
-    </div>""", unsafe_allow_html=True)
+    <div class="page-header">
+        <div class="page-tag">Task 4 · Adaptation</div>
+        <div class="page-title">Continual Learning</div>
+        <div class="page-desc">Fine-tuning the D1-trained MLP on D2 data via partial_fit() over 50 epochs. Before vs after comparison on the D2 test set.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    r0=continual_df[continual_df.model=="MLP_D1"].iloc[0]
-    r1=continual_df[continual_df.model=="MLP_CL"].iloc[0]
-    c1,c2,c3,c4=st.columns(4)
-    for ctx,lbl,bv,av in [(c1,"F1 Score",r0.f1,r1.f1),(c2,"ROC-AUC",r0.roc_auc,r1.roc_auc),(c3,"Recall",r0.recall,r1.recall),(c4,"Precision",r0.precision,r1.precision)]:
-        ctx.metric(lbl,f"{av:.3f}",delta=f"{av-bv:+.3f}")
+    # Logic untouched
+    r0 = continual_df[continual_df.model=="MLP_D1"].iloc[0]
+    r1 = continual_df[continual_df.model=="MLP_CL"].iloc[0]
+    f1_dir = "dropped" if r1.f1 < r0.f1 else "improved"
+
+    def _dc(a, b): return "neg" if b < a else "pos"
+
+    # Before / after metric cells
+    st.markdown(f"""
+    <div class="cl-grid">
+        <div class="cl-cell">
+            <div class="cl-label">F1 Score · D2 Test</div>
+            <div class="cl-values">
+                <span class="cl-before">{r0.f1:.3f}</span>
+                <span class="cl-arrow">→</span>
+                <span class="cl-after">{r1.f1:.3f}</span>
+            </div>
+            <div class="cl-delta {_dc(r0.f1, r1.f1)}">{r1.f1-r0.f1:+.3f} after fine-tuning</div>
+        </div>
+        <div class="cl-cell">
+            <div class="cl-label">ROC-AUC · D2 Test</div>
+            <div class="cl-values">
+                <span class="cl-before">{r0.roc_auc:.3f}</span>
+                <span class="cl-arrow">→</span>
+                <span class="cl-after">{r1.roc_auc:.3f}</span>
+            </div>
+            <div class="cl-delta {_dc(r0.roc_auc, r1.roc_auc)}">{r1.roc_auc-r0.roc_auc:+.3f} after fine-tuning</div>
+        </div>
+        <div class="cl-cell">
+            <div class="cl-label">Recall · D2 Test</div>
+            <div class="cl-values">
+                <span class="cl-before">{r0.recall:.3f}</span>
+                <span class="cl-arrow">→</span>
+                <span class="cl-after">{r1.recall:.3f}</span>
+            </div>
+            <div class="cl-delta {_dc(r0.recall, r1.recall)}">{r1.recall-r0.recall:+.3f} after fine-tuning</div>
+        </div>
+        <div class="cl-cell">
+            <div class="cl-label">Precision · D2 Test</div>
+            <div class="cl-values">
+                <span class="cl-before">{r0.precision:.3f}</span>
+                <span class="cl-arrow">→</span>
+                <span class="cl-after">{r1.precision:.3f}</span>
+            </div>
+            <div class="cl-delta {_dc(r0.precision, r1.precision)}">{r1.precision-r0.precision:+.3f} after fine-tuning</div>
+        </div>
+    </div>
+    <div class="cl-note">before = MLP_D1 (trained D1, evaluated D2 test)  ·  after = MLP_CL (50-epoch partial_fit on D2)</div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
-    metrics=["accuracy","precision","recall","f1","roc_auc"]
-    fig,ax=plt.subplots(figsize=(11,4.5))
-    x=np.arange(len(metrics)); w=0.36
-    b1=ax.bar(x-w/2,[r0[m] for m in metrics],w,label="MLP_D1 — Before",color=C_TEAL, edgecolor="none",alpha=0.9)
-    b2=ax.bar(x+w/2,[r1[m] for m in metrics],w,label="MLP_CL — After", color=C_AMBER,edgecolor="none",alpha=0.9)
-    ax.set_xticks(x); ax.set_xticklabels(["Accuracy","Precision","Recall","F1","ROC-AUC"],fontsize=10)
-    ax.set_ylim(0,1.2); ax.set_ylabel("Score"); ax.legend()
-    ax.set_title("Continual Learning — MLP Before vs After on D2 Test Set",pad=14)
-    ax.bar_label(b1,fmt="%.3f",fontsize=8.5,color=INK_SOFT,padding=4)
-    ax.bar_label(b2,fmt="%.3f",fontsize=8.5,color=INK_SOFT,padding=4)
-    plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+
+    # Logic untouched — bar chart
+    metrics = ["accuracy","precision","recall","f1","roc_auc"]
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    x = np.arange(len(metrics)); w = 0.36
+    b1 = ax.bar(x-w/2, [r0[m] for m in metrics], w, label="MLP_D1 — Before", color=C_GREEN, edgecolor="none", alpha=0.9)
+    b2 = ax.bar(x+w/2, [r1[m] for m in metrics], w, label="MLP_CL — After",  color=C_AMBER, edgecolor="none", alpha=0.9)
+    ax.set_xticks(x); ax.set_xticklabels(["Accuracy","Precision","Recall","F1","ROC-AUC"], fontsize=10)
+    ax.set_ylim(0, 1.2); ax.set_ylabel("Score"); ax.legend()
+    ax.set_title("Continual Learning — MLP Before vs After on D2 Test Set", pad=14)
+    ax.bar_label(b1, fmt="%.3f", fontsize=8.5, color=FG_SOFT, padding=4)
+    ax.bar_label(b2, fmt="%.3f", fontsize=8.5, color=FG_SOFT, padding=4)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
 
     st.markdown("---")
-    st.markdown('<div class="sl">Metrics table</div>', unsafe_allow_html=True)
-    st.dataframe(continual_df.style.format(precision=4),use_container_width=True)
+    st.markdown('<span class="sec-label">Metrics table</span>', unsafe_allow_html=True)
+    st.dataframe(continual_df.style.format(precision=4), use_container_width=True)
 
-    f1_dir="dropped" if r1.f1 < r0.f1 else "improved"
     st.markdown("---")
     st.markdown(f"""
-    <div class="nb red">
-        <h4>Catastrophic Forgetting — What Happened</h4>
+    <div class="insight-block red">
+        <div class="insight-block-title">Catastrophic Forgetting — What Happened</div>
         <ul>
-            <li>MLP_CL F1 <strong>{f1_dir}</strong> from {r0.f1:.3f} → {r1.f1:.3f} on D2</li>
+            <li>MLP_CL F1 <strong>{f1_dir}</strong> from {r0.f1:.3f} to {r1.f1:.3f} on D2</li>
             <li>partial_fit() over 50 epochs aggressively overwrote D1 weights</li>
-            <li>No regularization to preserve historical knowledge</li>
+            <li>No regularisation applied to preserve historical knowledge</li>
             <li>Learning rate was not decayed during fine-tuning</li>
         </ul>
     </div>
-    <div class="nb amb">
-        <h4>What Would Actually Work</h4>
+    <div class="insight-block">
+        <div class="insight-block-title">What Would Actually Work</div>
         <ul>
-            <li>Elastic Weight Consolidation (EWC) — penalizes updates to important D1 weights</li>
+            <li>Elastic Weight Consolidation (EWC) — penalises updates to important D1 weights</li>
             <li>Learning without Forgetting (LwF) — knowledge distillation approach</li>
             <li>Progressive Neural Networks — adds D2 capacity without touching D1 weights</li>
-            <li>The D1 MLP already generalizes to D2 — aggressive fine-tuning is counterproductive</li>
+            <li>D1 MLP already generalises to D2 — aggressive fine-tuning is counterproductive</li>
         </ul>
     </div>""", unsafe_allow_html=True)
 
-# ── PAGE 5 ────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 5 — FEATURE IMPORTANCE
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Feature Importance":
+
     st.markdown("""
-    <div class="ph">
-        <div class="ph-eye">Task 3 · Interpretability</div>
-        <div class="ph-title">Feature Importance</div>
-        <div class="ph-desc">What the Decision Tree found most useful, broken down by category and searchable by name.</div>
-    </div>""", unsafe_allow_html=True)
+    <div class="page-header">
+        <div class="page-tag">Task 3 · Interpretability</div>
+        <div class="page-title">Feature Importance</div>
+        <div class="page-desc">What the Decision Tree found most predictive — broken down by category and searchable by name.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    feat_imp=pd.Series(dt_best.feature_importances_,index=feature_names).sort_values(ascending=False)
-    top20=feat_imp.head(20)
-    st.markdown('<div class="sl">Top 20 — Decision Tree</div>', unsafe_allow_html=True)
-    fig,ax=plt.subplots(figsize=(11,7))
-    alphas=[0.5+0.5*(1-i/20) for i in range(len(top20))]
-    colors_bar=[matplotlib.colors.to_rgba(C_TEAL,a) for a in alphas]
-    bars=ax.barh(top20.index[::-1],top20.values[::-1],color=colors_bar[::-1],edgecolor="none",height=0.65)
-    ax.set_xlabel("Feature Importance"); ax.set_title("Top 20 Feature Importances — Decision Tree",pad=14)
-    ax.bar_label(bars,fmt="%.4f",fontsize=8,color=INK_SOFT,padding=4); ax.set_xlim(0,top20.max()*1.2)
-    plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
+    # Logic untouched
+    feat_imp = pd.Series(dt_best.feature_importances_, index=feature_names).sort_values(ascending=False)
+    top20 = feat_imp.head(20)
 
-    st.markdown("---")
-    st.markdown('<div class="sl">Feature category breakdown</div>', unsafe_allow_html=True)
-    demo_f =[f for f in feature_names if any(x in f for x in ["GENDER","RACE","ETHNICITY","INCOME","MARITAL","age","is_deceased","HEALTHCARE"])]
-    enc_f  =[f for f in feature_names if any(x in f for x in ["encounter","claim_cost","payer_coverage"])]
-    obs_f  =[f for f in feature_names if f.startswith("obs_")]
-    util_f =[f for f in feature_names if any(x in f for x in ["medication","procedure","immunization","careplan","imaging","device","supply","transaction","payer","claims"])]
-    c1,c2,c3,c4=st.columns(4)
-    c1.metric("Demographic",len(demo_f)); c2.metric("Encounter",len(enc_f))
-    c3.metric("Observation",len(obs_f)); c4.metric("Utilization",len(util_f))
+    st.markdown('<span class="sec-label">Top 20 — Decision Tree</span>', unsafe_allow_html=True)
+    fig, ax = plt.subplots(figsize=(11, 7))
+    alphas = [0.45 + 0.55*(1-i/20) for i in range(len(top20))]
+    colors_bar = [matplotlib.colors.to_rgba(C_GREEN, a) for a in alphas]
+    bars = ax.barh(top20.index[::-1], top20.values[::-1], color=colors_bar[::-1], edgecolor="none", height=0.65)
+    ax.set_xlabel("Feature Importance")
+    ax.set_title("Top 20 Feature Importances — Decision Tree", pad=14)
+    ax.bar_label(bars, fmt="%.4f", fontsize=8, color=FG_SOFT, padding=4)
+    ax.set_xlim(0, top20.max() * 1.2)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
 
     st.markdown("---")
-    st.markdown('<div class="sl">Search features</div>', unsafe_allow_html=True)
-    search=st.text_input("",placeholder="e.g. cholesterol, BMI, age…",label_visibility="collapsed")
-    filtered=[f for f in feature_names if search.lower() in f.lower()] if search else feature_names
-    st.markdown(f"<div style='font-size:0.75rem;color:{MUTED};margin-bottom:0.4rem;'>{len(filtered)} of {len(feature_names)} features</div>", unsafe_allow_html=True)
-    st.dataframe(pd.DataFrame({"feature_name":filtered}),use_container_width=True,height=260)
+
+    # Logic untouched — category breakdown
+    demo_f  = [f for f in feature_names if any(x in f for x in ["GENDER","RACE","ETHNICITY","INCOME","MARITAL","age","is_deceased","HEALTHCARE"])]
+    enc_f   = [f for f in feature_names if any(x in f for x in ["encounter","claim_cost","payer_coverage"])]
+    obs_f   = [f for f in feature_names if f.startswith("obs_")]
+    util_f  = [f for f in feature_names if any(x in f for x in ["medication","procedure","immunization","careplan","imaging","device","supply","transaction","payer","claims"])]
+
+    st.markdown('<span class="sec-label">Feature category counts</span>', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Demographic",  len(demo_f))
+    c2.metric("Encounter",    len(enc_f))
+    c3.metric("Observation",  len(obs_f))
+    c4.metric("Utilization",  len(util_f))
+
+    st.markdown("---")
+
+    st.markdown('<span class="sec-label">Search features by name</span>', unsafe_allow_html=True)
+    search = st.text_input("", placeholder="e.g. cholesterol, BMI, systolic, age …", label_visibility="collapsed")
+    filtered = [f for f in feature_names if search.lower() in f.lower()] if search else feature_names
+    st.markdown(f"<div style='font-size:0.72rem;color:{FG_MUTED};margin-bottom:0.5rem;font-family:var(--mono);'>{len(filtered)} of {len(feature_names)} features</div>", unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame({"feature_name": filtered}), use_container_width=True, height=260)
 
     st.markdown("---")
     st.markdown("""
-    <div class="nb">
-        <h4>Key Findings</h4>
+    <div class="insight-block">
+        <div class="insight-block-title">Key Findings</div>
         <ul>
-            <li>Observation-derived features (vitals + lab aggregates) dominate the top 20</li>
+            <li>Observation-derived features (vitals and lab aggregates) dominate the top 20</li>
             <li>BMI, Blood Pressure, and Cholesterol are the most predictive clinical signals</li>
-            <li>Demographics contribute but rank below clinical measurements</li>
-            <li>Utilization counts (encounters, medications) add secondary signal</li>
+            <li>Demographics contribute but rank consistently below clinical measurements</li>
+            <li>Utilisation counts (encounters, medications) add secondary signal</li>
         </ul>
     </div>
-    <div class="nb ind">
-        <h4>Feature Engineering Choices That Helped</h4>
+    <div class="insight-block dim">
+        <div class="insight-block-title">Feature Engineering Choices That Helped</div>
         <ul>
             <li>Mean + variance aggregation captures both central tendency and patient variability</li>
-            <li>Dropping >50% missing columns improved signal-to-noise noticeably</li>
+            <li>Dropping columns with more than 50% missingness improved signal-to-noise</li>
             <li>StandardScaling was essential for SVM and MLP convergence</li>
         </ul>
     </div>""", unsafe_allow_html=True)
